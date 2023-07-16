@@ -39,6 +39,8 @@ const getAccessToken = async (refreshToken, cfClearance) => {
 
 		// set the cf_clearance cookie
 		instance.defaults.headers.Cookie = `cf_clearance=${cfClearance}; refresh_token=${refreshToken}`;
+		// set the access token as the authorization header
+		instance.defaults.headers.Authorization = `Bearer ${accessToken}`;
 
 		return accessToken;
 	} catch(err){
@@ -48,18 +50,12 @@ const getAccessToken = async (refreshToken, cfClearance) => {
 
 /**
  * Fetches Clash.gg profile
- * @param {String} accessToken - The access token for the Clash.gg API
  * @returns {Promise<Object>} The profile
  * @throws {Error} The error which occurred
  */
-const getProfile = async (accessToken) => {
+const getProfile = async () => {
 	try{
-		const response = await instance.get('/user/me', {
-			headers: {
-				...DEFAULT_HEADERS,
-				Authorization: `Bearer ${accessToken}`
-			}
-		});
+		const response = await instance.get('/user/me');
 
 		const profile = response?.data;
 		if(!profile){

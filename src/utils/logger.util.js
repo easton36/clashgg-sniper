@@ -14,8 +14,7 @@ const logger = createLogger({
 			colors: {
 				error: 'red',
 				warn: 'yellow',
-				info: 'cyan',
-				debug: 'green'
+				info: 'cyan'
 			}
 		})
 	),

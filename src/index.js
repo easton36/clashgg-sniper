@@ -17,7 +17,7 @@ async function main(){
 	Logger.info(`Fetched access token: ${accessToken}`);
 
 	// Getting the profile
-	const profile = await getProfile(accessToken);
+	const profile = await getProfile();
 	if(!profile) return Logger.error('No profile was found');
 	Logger.info(`Fetched user profile! Name: ${profile.name}, User ID: ${profile.id}, Steam ID: ${profile.steamId}, Steam API Key: ${profile.steamApiKey}, Trade Token: ${profile.tradeToken}. \n\t\t\tTotal Deposits: ${profile.totalDeposits}, Total Withdrawals: ${profile.totalWithdrawals}, Total Wagered: ${profile.totalWagered}`);
 
