@@ -3,6 +3,7 @@
 ## This is a work in progress. It is not yet functional.
 
 This is a simple script that will automatically purchase items from the Clash.gg store as soon as they become available, if the price is below a certain threshold.
+Probably add functionality to automatically sell items as well.
 
 ### Usage
  - Install Node.js v12 or higher

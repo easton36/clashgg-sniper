@@ -69,12 +69,21 @@ const getProfile = async () => {
 };
 
 /**
- * Fetches Clash.gg p2p listings
- * @param {String} accessToken - The access token for the Clash.gg API
- * @returns {Promise<Object>} The p2p listings
+ * Fetches Clash.gg active listings
+ * @returns {Promise<Object>} The listings
  */
+const getActiveListings = async () => {
+	try{
+		const response = await instance.get('/steam-p2p/listings/my-active');
+
+		const listings = response?.data;
+	} catch(err){
+		Logger.error(`[API] An error occurred while getting the active listings: ${err?.response?.data?.message || err.message || err}`);
+	}
+};
 
 module.exports = {
 	getAccessToken,
-	getProfile
+	getProfile,
+	getActiveListings
 };
