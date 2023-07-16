@@ -4,11 +4,11 @@ const Logger = require('./utils/logger.util');
 const CONFIG = require('./config');
 
 const DEFAULT_HEADERS = {
-	'Origin': 'https://clash.gg',
+	Origin: 'https://clash.gg',
 	'Accept-Encoding': 'gzip, deflate, br',
 	'Accept-Language': 'en-US,en;q=0.9',
 	'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36',
-	'Pragma': 'no-cache'
+	Pragma: 'no-cache'
 };
 
 /**
@@ -69,6 +69,7 @@ const ClashWebsocket = ({
 		if(Buffer.isBuffer(reason)){
 			reason = reason.toString();
 		}
+
 		return Logger.warn(`[WEBSOCKET] WebSocket closed. Code: ${code}, Reason: ${reason || 'N/A'}`);
 	};
 
@@ -86,7 +87,6 @@ const ClashWebsocket = ({
 
 		return Logger.warn(`[WEBSOCKET] Received unknown message: ${message}`);
 	};
-
 
 	return {
 		initialize

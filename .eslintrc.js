@@ -5,8 +5,7 @@ module.exports = {
 		es2021: true
 	},
 	extends: [
-		'standard',
-		'plugin:security/recommended'
+		'standard'
 	],
 	overrides: [],
 	ignorePatterns: [
@@ -96,10 +95,9 @@ module.exports = {
 			named: 'never',
 			asyncArrow: 'always'
 		}],
-		'no-return-assign': 0,
-		'security/detect-object-injection': 0
+		'no-return-assign': 0
 	}
-}
+};
 
 /*
  Classes should use PascalCase

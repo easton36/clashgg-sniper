@@ -5,8 +5,7 @@ const CONFIG = require('./config');
 
 const ClashWebsocket = require('./websocket');
 const { getAccessToken, getProfile } = require('./api');
-
-const ACTIVE_LISTINGS = {};
+const { newListingCreated, listingRemoved } = require('./listings');
 
 async function main(){
 	Logger.info('Starting the Clash.gg manager');
@@ -27,16 +26,11 @@ async function main(){
 		cfClearance: CONFIG.CF_CLEARANCE
 	}, (event, data) => {
 		switch(event){
-			case 'auth':
-				return Logger.info(`[WEBSOCKET] Successfully authenticated with the Clash.gg WebSocket server. User ID: ${data.userId}, Steam ID: ${data.steamId}, Role: ${data.role}`);
-			case 'p2p:listing:new':
-				ACTIVE_LISTINGS[data.id] = data;
+		case 'auth':
+			return Logger.info(`[WEBSOCKET] Successfully authenticated with the Clash.gg WebSocket server. User ID: ${data.userId}, Steam ID: ${data.steamId}, Role: ${data.role}`);
 
-				return Logger.info(`[WEBSOCKET] Received new p2p listing. ID: ${data.id}, Status: ${data.status}, Seller Hash: ${data.sellerHash}.\n\t\t\tItem Name: ${data.item?.name}, Item Float: ${data.item?.float}, Item Price: ${data.item?.price}, Item Ask Price: ${data.item?.askPrice}, Item Stickers: ${data.item?.stickers?.map(sticker => `Slot ${sticker.slot}: ${sticker.name}`).join(', ') || 'None'}`);
-			case 'p2p:listing:remove':
-				delete ACTIVE_LISTINGS[data.id];
-
-				return Logger.info(`[WEBSOCKET] A p2p listing was removed. ID: ${data.id}`);
+		case 'p2p:listing:new': return newListingCreated(data);
+		case 'p2p:listing:remove': return listingRemoved(data);
 		}
 	});
 
