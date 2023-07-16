@@ -77,6 +77,8 @@ const getActiveListings = async () => {
 		const response = await instance.get('/steam-p2p/listings/my-active');
 
 		const listings = response?.data;
+
+		return listings;
 	} catch(err){
 		Logger.error(`[API] An error occurred while getting the active listings: ${err?.response?.data?.message || err.message || err}`);
 	}
