@@ -48,6 +48,7 @@ const Manager = () => {
 	let websocket;
 	let steamAccount;
 	let steamId;
+	let accountBalance = 0;
 
 	const ourListings = {};
 
@@ -135,8 +136,21 @@ const Manager = () => {
 		const profile = await getProfile();
 		if(!profile) return Logger.error('No profile was found');
 
-		Logger.info(`Fetched user profile! Name: ${profile.name}, User ID: ${profile.id}, Steam ID: ${profile.steamId}, Current Balance: ${profile.balance}. \n\t\t\tTotal Deposits: ${profile.totalDeposits}, Total Withdrawals: ${profile.totalWithdrawals}, Total Wagered: ${profile.totalWagered}`);
+		const profileKeys = ['id', 'name', 'steamId', 'balance', 'role', 'kycStatus', 'totalDeposits', 'totalWithdrawals', 'totalWagered', 'affiliateCode', 'createdAt'];
+		const longestKey = profileKeys.reduce((a, b) => a.length > b.length ? a : b);
+
+		let message = 'Fetched user profile!\n';
+
+		for(const key of profileKeys){
+			const value = profile[key];
+			const spaces = ' '.repeat(longestKey.length - key.length + 1);
+
+			message += `\t\t${key}:${spaces}${value}\n`;
+		}
+
+		Logger.info(message);
 		steamId = profile.steamId;
+		accountBalance = profile.balance;
 	};
 
 	/**
@@ -174,8 +188,12 @@ const Manager = () => {
 				if(!shouldSnipe) return;
 				// buy the listing
 				const purchased = await buyListing(data.id);
+				if(!purchased) return;
 
-				if(CONFIG.DISCORD_WEBHOOK_URL && purchased){
+				// reduce account balance
+				accountBalance -= data.item.askPrice;
+
+				if(CONFIG.DISCORD_WEBHOOK_URL){
 					// send webhook
 					itemPurchased(CONFIG.DISCORD_WEBHOOK_URL, data);
 				}
