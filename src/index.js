@@ -7,7 +7,7 @@ const ClashWebsocket = require('./clash/websocket');
 const SteamAccount = require('./steam/account');
 const { getAccessToken, getProfile, buyListing } = require('./clash/api');
 const { newListingCreated, listingRemoved, listingUpdated } = require('./clash/listings');
-const { itemPurchased, scriptStarted } = require('./discord/webhook');
+const { itemPurchased, scriptStarted, listingCanceled } = require('./discord/webhook');
 
 const startTime = new Date();
 // We run this once an hour to just give time notice
@@ -64,7 +64,13 @@ async function main(){
 			break;
 		}
 		case 'p2p:listing:remove': return listingRemoved(data);
-		case 'p2p:listing:update': return listingUpdated(data);
+		case 'p2p:listing:update': {
+			const listingStatus = listingUpdated(data);
+			if(listingStatus === 'CANCELED-SYSTEM' && CONFIG.DISCORD_WEBHOOK_URL){
+				// send webhook
+				listingCanceled(CONFIG.DISCORD_WEBHOOK_URL, data);
+			}
+		}
 		}
 	});
 

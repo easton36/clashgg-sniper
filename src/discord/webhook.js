@@ -94,6 +94,51 @@ const itemPurchased = async (webhookURL, data) => {
 };
 
 /**
+ * Discord webhook that a listing we purchased was canceled
+ * @param {String} webhookURL - The URL of the Discord webhook
+ * @param {Object} data - The data of the p2p listing
+ */
+const listingCanceled = async (webhookURL, data) => {
+	try{
+		const response = await axios({
+			method: 'POST',
+			url: webhookURL,
+			data: {
+				content: null,
+				embeds: [{
+					title: 'Purchase Canceled',
+					description: 'A listing we purchased was canceled by the system.',
+					color: 16711680,
+					fields: [
+						{
+							name: 'Listing ID',
+							value: data?.id
+						},
+						{
+							name: 'Name',
+							value: data?.item?.name
+						},
+						{
+							name: 'Price (Coins)',
+							value: `$${(data?.item?.askPrice / 100).toFixed(2)}`
+						}
+					],
+					timestamp: new Date().toJSON()
+				}],
+				username: WEBHOOK_USERNAME,
+				avatar_url: WEBHOOK_AVATAR_URL,
+				attachments: []
+			}
+		});
+
+		return Logger.info(`[DISCORD] Successfully sent the listing canceled webhook. Status: ${response.status}`);
+	} catch(err){
+		const errMessage = err?.response?.data?.message || err.message || err;
+		Logger.error(`[DISCORD] An error occurred while sending the listing canceled webhook: ${errMessage}`);
+	}
+};
+
+/**
  * Discord webhook that a trade was accepted
  * @param {String} webhookURL - The URL of the Discord webhook
  * @param {Object} data - The data of the trade
@@ -140,5 +185,6 @@ const tradeOfferAccepted = async (webhookURL, data) => {
 module.exports = {
 	scriptStarted,
 	itemPurchased,
+	listingCanceled,
 	tradeOfferAccepted
 };

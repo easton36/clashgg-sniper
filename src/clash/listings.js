@@ -45,33 +45,40 @@ const listingRemoved = (data) => {
 /**
  * When a p2p listing is updated
  * @param {Object} data - The data of the p2p listing
- * @returns {void}
+ * @returns {String} The status of the p2p listing
  */
 const listingUpdated = (data) => {
 	const listingStatus = data?.status;
 
 	switch(listingStatus){
 	case 'ASKED':
-		return Logger.info(`[WEBSOCKET] We ASKED to purchase a p2p listing. ${formatListing(data, true)}`);
+		Logger.info(`[WEBSOCKET] We ASKED to purchase a p2p listing. ${formatListing(data, true)}`);
+		break;
 
 	case 'CANCELED-SYSTEM':
-		return Logger.warn(`[WEBSOCKET] A p2p listing we asked to purchase was CANCELED by the system. ${formatListing(data, true)}`);
+		Logger.warn(`[WEBSOCKET] A p2p listing we asked to purchase was CANCELED by the system. ${formatListing(data, true)}`);
+		break;
 
 	// seller has accepted our offer
 	case 'ANSWERED':
-		return Logger.info(`[WEBSOCKET] A p2p listing we asked to purchase was ACCEPTED by the seller. ${formatListing(data, true)}`);
+		Logger.info(`[WEBSOCKET] A p2p listing we asked to purchase was ACCEPTED by the seller. ${formatListing(data, true)}`);
+		break;
 
 	// seller has sent the steam trade
 	case 'SENT':
-		return Logger.info(`[WEBSOCKET] A p2p listing we asked to purchase was SENT by the seller. ${formatListing(data, true)}`);
+		Logger.info(`[WEBSOCKET] A p2p listing we asked to purchase was SENT by the seller. ${formatListing(data, true)}`);
+		break;
 
 	// we accepted the steam trade
 	case 'RECEIVED':
-		return Logger.info(`[WEBSOCKET] A p2p listing we asked to purchase was RECEIVED by us. ${formatListing(data, true)}`);
+		Logger.info(`[WEBSOCKET] A p2p listing we asked to purchase was RECEIVED by us. ${formatListing(data, true)}`);
+		break;
 
 	default:
-		return Logger.info(`[WEBSOCKET] Received unknown status ${listingStatus} for p2p listing. ${formatListing(data, true)}`);
+		Logger.info(`[WEBSOCKET] Received unknown status ${listingStatus} for p2p listing. ${formatListing(data, true)}`);
 	}
+
+	return listingStatus;
 };
 
 module.exports = {
