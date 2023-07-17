@@ -7,18 +7,23 @@
     "start": "node src/index.js"
   },
   "keywords": [
-	"clash",
-	"clash.gg",
-	"clashgg",
-	"sniper",
-	"clash sniper",
-	"clash.gg sniper"
+    "clash",
+    "clash.gg",
+    "clashgg",
+    "sniper",
+    "clash sniper",
+    "clash.gg sniper"
   ],
   "author": "Easton S.",
   "license": "ISC",
   "dependencies": {
     "axios": "^1.4.0",
     "dotenv": "^16.3.1",
+    "mongoose": "^7.3.4",
+    "steam-totp": "^2.1.2",
+    "steam-tradeoffer-manager": "^2.10.6",
+    "steam-user": "^4.28.9",
+    "steamcommunity": "^3.46.1",
     "winston": "^3.10.0",
     "ws": "^8.13.0"
   },

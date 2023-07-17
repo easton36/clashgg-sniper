@@ -1,7 +1,7 @@
 const axios = require('axios');
 
-const Logger = require('./utils/logger.util');
-const CONFIG = require('./config');
+const Logger = require('../utils/logger.util');
+const CONFIG = require('../config');
 
 const DEFAULT_HEADERS = {
 	'Content-Type': 'application/json',
@@ -44,7 +44,10 @@ const getAccessToken = async (refreshToken, cfClearance) => {
 
 		return accessToken;
 	} catch(err){
-		Logger.error(`[API] An error occurred while getting the access token: ${err?.response?.data?.message || err.message || err}`);
+		const errMessage = err?.response?.data?.message || err.message || err;
+		Logger.error(`[API] An error occurred while getting the access token: ${errMessage}`);
+
+		return false;
 	}
 };
 
@@ -64,7 +67,10 @@ const getProfile = async () => {
 
 		return profile;
 	} catch(err){
-		Logger.error(`[API] An error occurred while getting the profile: ${err?.response?.data?.message || err.message || err}`);
+		const errMessage = err?.response?.data?.message || err.message || err;
+		Logger.error(`[API] An error occurred while getting the profile: ${errMessage}`);
+
+		return false;
 	}
 };
 
@@ -80,12 +86,45 @@ const getActiveListings = async () => {
 
 		return listings;
 	} catch(err){
-		Logger.error(`[API] An error occurred while getting the active listings: ${err?.response?.data?.message || err.message || err}`);
+		const errMessage = err?.response?.data?.message || err.message || err;
+		Logger.error(`[API] An error occurred while getting the active listings: ${errMessage}`);
+
+		return false;
+	}
+};
+
+/**
+ * Buys a Clash.gg listing
+ * @param {String} listingId - The ID of the listing to buy
+ * @returns {Promise<Boolean>} Whether or not the listing was bought
+ */
+const buyListing = async (listingId) => {
+	try{
+		const response = await instance({
+			method: 'PATCH',
+			url: `/steam-p2p/listings/${listingId}/buy`
+		});
+
+		if(!response?.data?.success){
+			Logger.error(`[API] An error occurred while buying the listing (${listingId}): ${response?.data?.message || 'No message was found'}`);
+
+			return false;
+		}
+
+		Logger.info(`[API] Successfully bought the listing (${listingId})! New site balance: ${response?.data?.newBalance}`);
+
+		return true;
+	} catch(err){
+		const errMessage = err?.response?.data?.message || err.message || err;
+		Logger.error(`[API] An error occurred while buying the listing (${listingId}): ${errMessage}${errMessage === 'resource_unavailable' ? ' (Someone else beat us to it)' : ''}`);
+
+		return false;
 	}
 };
 
 module.exports = {
 	getAccessToken,
 	getProfile,
-	getActiveListings
+	getActiveListings,
+	buyListing
 };

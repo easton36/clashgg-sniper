@@ -1,7 +1,32 @@
 module.exports = {
+	VERSION: '1.0.0',
+
+	MONGO_URI: process.env.MONGO_URI,
+
 	CLASH_WS_URL: 'wss://ws.clash.gg/',
 	CLASH_API_URL: 'https://clash.gg/api',
 
 	REFRESH_TOKEN: process.env.REFRESH_TOKEN,
-	CF_CLEARANCE: process.env.CF_CLEARANCE
+	CF_CLEARANCE: process.env.CF_CLEARANCE,
+
+	PRICEMPIRE_API_URL: 'https://api.pricempire.com',
+	PRICEMPIRE_API_KEY: process.env.PRICEMPIRE_API_KEY,
+
+	CLASH_COIN_CONVERSION: process.env.CLASH_COIN_CONVERSION,
+
+	MIN_PRICE: process.env.MIN_PRICE * 100,
+	MAX_PRICE: process.env.MAX_PRICE * 100,
+
+	MAX_MARKUP_PERCENT: process.env.MAX_MARKUP_PERCENT,
+
+	ITEMS_TO_IGNORE: JSON.parse(process.env.ITEMS_TO_IGNORE),
+	STRINGS_TO_IGNORE: JSON.parse(process.env.STRINGS_TO_IGNORE),
+
+	ENABLE_STEAM_LOGIN: process.env.ENABLE_STEAM_LOGIN === 'true',
+	STEAM_USERNAME: process.env.STEAM_USERNAME,
+	STEAM_PASSWORD: process.env.STEAM_PASSWORD,
+	STEAM_SHARED_SECRET: process.env.STEAM_SHARED_SECRET,
+	STEAM_IDENTITY_SECRET: process.env.STEAM_IDENTITY_SECRET,
+
+	DISCORD_WEBHOOK_URL: process.env.DISCORD_WEBHOOK_URL
 };

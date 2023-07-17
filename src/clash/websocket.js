@@ -1,7 +1,7 @@
 const WebSocket = require('ws');
 
-const Logger = require('./utils/logger.util');
-const CONFIG = require('./config');
+const Logger = require('../utils/logger.util');
+const CONFIG = require('../config');
 
 const DEFAULT_HEADERS = {
 	Origin: 'https://clash.gg',
@@ -22,22 +22,13 @@ const ClashWebsocket = ({
 	accessToken,
 	cfClearance
 }, callback) => {
-	let socket;
-
-	const initialize = () => {
-		socket = new WebSocket(CONFIG.CLASH_WS_URL, {
-			headers: {
-				...DEFAULT_HEADERS,
-				Authorization: `Bearer ${accessToken}`,
-				Cookie: `cf_clearance=${cfClearance}`
-			}
-		});
-
-		socket.on('open', _open);
-		socket.on('error', _error);
-		socket.on('close', _close);
-		socket.on('message', _message);
-	};
+	const socket = new WebSocket(CONFIG.CLASH_WS_URL, {
+		headers: {
+			...DEFAULT_HEADERS,
+			Authorization: `Bearer ${accessToken}`,
+			Cookie: `cf_clearance=${cfClearance}`
+		}
+	});
 
 	/**
 	 * When the WebSocket connection is opened
@@ -88,9 +79,11 @@ const ClashWebsocket = ({
 		return Logger.warn(`[WEBSOCKET] Received unknown message: ${message}`);
 	};
 
-	return {
-		initialize
-	};
+	// WebSocket events
+	socket.on('open', _open);
+	socket.on('error', _error);
+	socket.on('close', _close);
+	socket.on('message', _message);
 };
 
 module.exports = ClashWebsocket;
