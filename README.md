@@ -20,3 +20,6 @@ Probably add functionality to automatically sell items as well.
 
 ### Usage
  - Run `npm start` to start the script
+
+### Notes
+You will need to restart the script every time you change the .env file.
