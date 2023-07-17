@@ -1,37 +1,37 @@
 {
-  "name": "clashgg-sniper",
-  "version": "1.0.0",
-  "description": "This is a simple script that will automatically purchase items from the Clash.gg store as soon as they become available, if the price is below a certain threshold.",
-  "main": "index.js",
-  "scripts": {
-    "start": "node src/index.js"
-  },
-  "keywords": [
-    "clash",
-    "clash.gg",
-    "clashgg",
-    "sniper",
-    "clash sniper",
-    "clash.gg sniper"
-  ],
-  "author": "Easton S.",
-  "license": "ISC",
-  "dependencies": {
-    "axios": "^1.4.0",
-    "dotenv": "^16.3.1",
-    "mongoose": "^7.3.4",
-    "steam-totp": "^2.1.2",
-    "steam-tradeoffer-manager": "^2.10.6",
-    "steam-user": "^4.28.9",
-    "steamcommunity": "^3.46.1",
-    "winston": "^3.10.0",
-    "ws": "^8.13.0"
-  },
-  "devDependencies": {
-    "eslint": "^8.45.0",
-    "eslint-config-standard": "^17.1.0",
-    "eslint-plugin-import": "^2.27.5",
-    "eslint-plugin-n": "^16.0.1",
-    "eslint-plugin-promise": "^6.1.1"
-  }
+	"name": "clashgg-sniper",
+	"version": "1.0.1",
+	"description": "This is a simple script that will automatically purchase items from the Clash.gg store as soon as they become available, if the price is below a certain threshold.",
+	"main": "index.js",
+	"scripts": {
+		"start": "node src/index.js"
+	},
+	"keywords": [
+		"clash",
+		"clash.gg",
+		"clashgg",
+		"sniper",
+		"clash sniper",
+		"clash.gg sniper"
+	],
+	"author": "Easton S.",
+	"license": "ISC",
+	"dependencies": {
+		"axios": "^1.4.0",
+		"dotenv": "^16.3.1",
+		"mongoose": "^7.3.4",
+		"steam-totp": "^2.1.2",
+		"steam-tradeoffer-manager": "^2.10.6",
+		"steam-user": "^4.28.9",
+		"steamcommunity": "^3.46.1",
+		"winston": "^3.10.0",
+		"ws": "^8.13.0"
+	},
+	"devDependencies": {
+		"eslint": "^8.45.0",
+		"eslint-config-standard": "^17.1.0",
+		"eslint-plugin-import": "^2.27.5",
+		"eslint-plugin-n": "^16.0.1",
+		"eslint-plugin-promise": "^6.1.1"
+	}
 }

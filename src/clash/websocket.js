@@ -23,6 +23,7 @@ const ClashWebsocket = ({
 	cfClearance
 }, callback) => {
 	let socket;
+	let updateInProgress = false;
 
 	/**
 	 * Initialize the WebSocket connection
@@ -61,6 +62,11 @@ const ClashWebsocket = ({
 	 * @param {String} newAccessToken - The new access token
 	 */
 	const updateAccessToken = (newAccessToken) => {
+		// if an update is already in progress, return
+		if(updateInProgress) return;
+		Logger.info('[WEBSOCKET] Updating the access token...');
+
+		updateInProgress = true;
 		// update the access token
 		accessToken = newAccessToken;
 
@@ -69,6 +75,7 @@ const ClashWebsocket = ({
 
 		// re-initialize the WebSocket connection
 		initialize();
+		updateInProgress = false;
 	};
 
 	/**

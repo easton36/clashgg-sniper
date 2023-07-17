@@ -22,8 +22,25 @@ const {
 const { itemPurchased, scriptStarted, listingCanceled } = require('./discord/webhook');
 const { fetchAndInsertPricingData } = require('./pricempire/prices');
 
+// Print all config settings in a nice column format
+const startupMessage = () => {
+	const configKeys = Object.keys(CONFIG);
+	const longestKey = configKeys.reduce((a, b) => a.length > b.length ? a : b);
+
+	let message = 'Starting the Clash.gg manager. Config Settings:\n';
+
+	for(const key of configKeys){
+		const value = CONFIG[key];
+		const spaces = ' '.repeat(longestKey.length - key.length + 1);
+
+		message += `\t\t${key}:${spaces}${value}\n`;
+	}
+
+	return message;
+};
+
 const Manager = () => {
-	Logger.info(`Starting the Clash.gg manager. Version: ${CONFIG.VERSION}, Minimum Item Price: ${CONFIG.MIN_PRICE / 100}, Maximum Item Price: ${CONFIG.MAX_PRICE / 100}, Maximum Markup Percentage: ${CONFIG.MAX_MARKUP_PERCENT}, Items to Ignore: ${CONFIG.ITEMS_TO_IGNORE.join(', ') || 'N/A'}, Strings to Ignore: ${CONFIG.STRINGS_TO_IGNORE.join(', ') || 'N/A'}`);
+	Logger.verbose(startupMessage());
 
 	const startTime = new Date();
 
@@ -43,7 +60,7 @@ const Manager = () => {
 
 		Logger.info(`The Clash.gg manager has been running for ${timeElapsedHours} hours. It is currently ${new Date().toLocaleString()}, and we started at ${startTime.toLocaleString()}`);
 
-		// Initializing the database if enabled
+		// RE-fetching the pricing data every hour
 		if(CONFIG.PRICEMPIRE_API_KEY){
 			fetchAndInsertPricingData(CONFIG.PRICEMPIRE_API_KEY);
 		}
@@ -190,80 +207,3 @@ const Manager = () => {
 };
 
 Manager().initialize();
-
-/*
-async function main(){
-	Logger.info(`Starting the Clash.gg manager. Version: ${CONFIG.VERSION}, Minimum Item Price: ${CONFIG.MIN_PRICE / 100}, Maximum Item Price: ${CONFIG.MAX_PRICE / 100}, Maximum Markup Percentage: ${CONFIG.MAX_MARKUP_PERCENT}, Items to Ignore: ${CONFIG.ITEMS_TO_IGNORE.join(', ') || 'N/A'}, Strings to Ignore: ${CONFIG.STRINGS_TO_IGNORE.join(', ') || 'N/A'}`);
-	// Getting the access token
-	let accessToken = await getAccessToken(CONFIG.REFRESH_TOKEN, CONFIG.CF_CLEARANCE);
-	if(!accessToken) return Logger.error('No access token was found');
-	Logger.info(`Fetched access token: ${accessToken}`);
-
-	// Getting the profile
-	const profile = await getProfile();
-	if(!profile) return Logger.error('No profile was found');
-	Logger.info(`Fetched user profile! Name: ${profile.name}, User ID: ${profile.id}, Steam ID: ${profile.steamId}, Current Balance: ${profile.balance}. \n\t\t\tTotal Deposits: ${profile.totalDeposits}, Total Withdrawals: ${profile.totalWithdrawals}, Total Wagered: ${profile.totalWagered}`);
-
-	const steamId = profile.steamId;
-
-	// Initializing the Steam account
-	if(CONFIG.ENABLE_STEAM_LOGIN){
-		const steamAccount = SteamAccount({
-			username: CONFIG.STEAM_USERNAME,
-			password: CONFIG.STEAM_PASSWORD,
-			sharedSecret: CONFIG.STEAM_SHARED_SECRET,
-			identitySecret: CONFIG.STEAM_IDENTITY_SECRET
-		});
-
-		await steamAccount.login();
-	}
-
-	// Initializing the Clash.gg Websocket manager
-	const websocket = ClashWebsocket({
-		accessToken,
-		cfClearance: CONFIG.CF_CLEARANCE
-	}, async (event, data) => {
-		switch(event){
-		case 'auth':
-			return Logger.info(`[WEBSOCKET] Successfully authenticated with the Clash.gg WebSocket server. User ID: ${data.userId}, Steam ID: ${data.steamId}, Role: ${data.role}`);
-
-		case 'p2p:listing:new': {
-			try{
-				const shouldSnipe = newListingCreated(data);
-				if(!shouldSnipe) return;
-				// buy the listing
-				const purchased = await buyListing(data.id);
-
-				if(CONFIG.DISCORD_WEBHOOK_URL && purchased){
-					// send webhook
-					itemPurchased(CONFIG.DISCORD_WEBHOOK_URL, data);
-				}
-			} catch(err){
-				accessToken = await getAccessToken(CONFIG.REFRESH_TOKEN, CONFIG.CF_CLEARANCE);
-				// update websocket access token
-				websocket.updateAccessToken(accessToken);
-
-				Logger.info(`Regenerated access token: ${accessToken}`);
-			}
-			break;
-		}
-		case 'p2p:listing:remove': return listingRemoved(data);
-		case 'p2p:listing:update': {
-			const listingStatus = listingUpdated(data, steamId);
-			if(listingStatus === 'CANCELED-SYSTEM' && CONFIG.DISCORD_WEBHOOK_URL){
-				// send webhook
-				listingCanceled(CONFIG.DISCORD_WEBHOOK_URL, data);
-			}
-
-			break;
-		}
-		}
-	});
-
-	// Sending the script started webhook
-	if(CONFIG.DISCORD_WEBHOOK_URL){
-		scriptStarted(CONFIG.DISCORD_WEBHOOK_URL);
-	}
-}
-
-main(); */

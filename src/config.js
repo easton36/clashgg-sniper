@@ -1,5 +1,7 @@
+const { version } = require('../package.json');
+
 module.exports = {
-	VERSION: '1.0.0',
+	VERSION: version,
 
 	MONGO_URI: process.env.MONGO_URI,
 
@@ -12,18 +14,23 @@ module.exports = {
 	PRICEMPIRE_API_URL: 'https://api.pricempire.com',
 	PRICEMPIRE_API_KEY: process.env.PRICEMPIRE_API_KEY,
 
-	CLASH_COIN_CONVERSION: process.env.CLASH_COIN_CONVERSION,
+	CLASH_COIN_CONVERSION: Number(process.env.CLASH_COIN_CONVERSION),
 
-	MIN_PRICE: process.env.MIN_PRICE * 100,
-	MAX_PRICE: process.env.MAX_PRICE * 100,
+	ENABLE_ITEM_SNIPING: process.env.ENABLE_ITEM_SNIPING === 'true',
 
-	MAX_MARKUP_PERCENT: process.env.MAX_MARKUP_PERCENT,
+	MIN_PRICE: Number(process.env.MIN_PRICE) * 100,
+	MAX_PRICE: Number(process.env.MAX_PRICE) * 100,
+
+	MAX_MARKUP_PERCENT: Number(process.env.MAX_MARKUP_PERCENT),
+
+	CHECK_BUFF_PRICE: process.env.CHECK_BUFF_PRICE === 'true',
+	MAX_BUFF_PERCENT: Number(process.env.MAX_BUFF_PERCENT),
 
 	ITEMS_TO_IGNORE: JSON.parse(process.env.ITEMS_TO_IGNORE),
 	STRINGS_TO_IGNORE: JSON.parse(process.env.STRINGS_TO_IGNORE),
 
 	ENABLE_BULK_SELL: process.env.ENABLE_BULK_SELL === 'true',
-	INVENTORY_SELL_MARKUP_PERCENT: process.env.INVENTORY_SELL_MARKUP_PERCENT,
+	INVENTORY_SELL_MARKUP_PERCENT: Number(process.env.INVENTORY_SELL_MARKUP_PERCENT),
 
 	ENABLE_STEAM_LOGIN: process.env.ENABLE_STEAM_LOGIN === 'true',
 	STEAM_USERNAME: process.env.STEAM_USERNAME,

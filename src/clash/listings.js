@@ -23,6 +23,8 @@ const fetchItemPrice = async (name) => {
  * @returns {Boolean} Whether or not the listing should be sniped
  */
 const newListingCreated = (data) => {
+	if(!CONFIG.ENABLE_ITEM_SNIPING) return false;
+
 	const { item } = data;
 	const markupPercentage = item?.askPrice / item?.price;
 

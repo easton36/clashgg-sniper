@@ -14,12 +14,15 @@ const logger = createLogger({
 			colors: {
 				error: 'red',
 				warn: 'yellow',
-				info: 'cyan'
+				info: 'cyan',
+				verbose: 'bold blue'
 			}
 		})
 	),
 	transports: [
-		new transports.Console()
+		new transports.Console({
+			level: 'silly'
+		})
 	]
 });
 
