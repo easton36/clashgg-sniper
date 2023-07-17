@@ -21,7 +21,7 @@ async function main(){
 	Logger.info(`Starting the Clash.gg manager. Version: ${CONFIG.VERSION}, Minimum Item Price: ${CONFIG.MIN_PRICE / 100}, Maximum Item Price: ${CONFIG.MAX_PRICE / 100}, Maximum Markup Percentage: ${CONFIG.MAX_MARKUP_PERCENT}, Items to Ignore: ${CONFIG.ITEMS_TO_IGNORE.join(', ') || 'N/A'}, Strings to Ignore: ${CONFIG.STRINGS_TO_IGNORE.join(', ') || 'N/A'}`);
 
 	// Getting the access token
-	const accessToken = await getAccessToken(CONFIG.REFRESH_TOKEN, CONFIG.CF_CLEARANCE);
+	let accessToken = await getAccessToken(CONFIG.REFRESH_TOKEN, CONFIG.CF_CLEARANCE);
 	if(!accessToken) return Logger.error('No access token was found');
 	Logger.info(`Fetched access token: ${accessToken}`);
 
@@ -52,14 +52,20 @@ async function main(){
 			return Logger.info(`[WEBSOCKET] Successfully authenticated with the Clash.gg WebSocket server. User ID: ${data.userId}, Steam ID: ${data.steamId}, Role: ${data.role}`);
 
 		case 'p2p:listing:new': {
-			const shouldSnipe = newListingCreated(data);
-			if(!shouldSnipe) return;
-			// buy the listing
-			const purchased = await buyListing(data.id);
+			try{
+				const shouldSnipe = newListingCreated(data);
+				if(!shouldSnipe) return;
+				// buy the listing
+				const purchased = await buyListing(data.id);
 
-			if(CONFIG.DISCORD_WEBHOOK_URL && purchased){
-				// send webhook
-				itemPurchased(CONFIG.DISCORD_WEBHOOK_URL, data);
+				if(CONFIG.DISCORD_WEBHOOK_URL && purchased){
+					// send webhook
+					itemPurchased(CONFIG.DISCORD_WEBHOOK_URL, data);
+				}
+			} catch(err){
+				accessToken = await getAccessToken(CONFIG.REFRESH_TOKEN, CONFIG.CF_CLEARANCE);
+
+				Logger.info(`Regenerated access token: ${accessToken}`);
 			}
 			break;
 		}

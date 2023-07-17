@@ -118,6 +118,11 @@ const buyListing = async (listingId) => {
 		const errMessage = err?.response?.data?.message || err.message || err;
 		Logger.error(`[API] An error occurred while buying the listing (${listingId}): ${errMessage}${errMessage === 'resource_unavailable' ? ' (Someone else beat us to it)' : ''}`);
 
+		// if we are Unauthorized, we need to get a new access token
+		if(errMessage === 'Unauthorized'){
+			throw new Error('Unauthorized');
+		}
+
 		return false;
 	}
 };

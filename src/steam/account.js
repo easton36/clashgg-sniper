@@ -202,7 +202,12 @@ module.exports = ({
 	// called when the client has finished logging in
 	const _loggedOn = () => {
 		Logger.info(`[${username}] Logged in to Steam as ${client.steamID.getSteamID64()}`);
-		client.setPersona(EPersonaState.Online);
+
+		if(CONFIG.PLAY_GAME_APPID){
+			client.gamesPlayed([CONFIG.PLAY_GAME_APPID]);
+		} else{
+			client.setPersona(EPersonaState.Online);
+		}
 	};
 
 	/**
