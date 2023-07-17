@@ -6,13 +6,14 @@ const Logger = require('../utils/logger.util');
 /**
  * Fetches all pricempire pricing data
  * @param {String} apiKey - The API key for the Pricempire API
+ * @returns {Promise<Object>} The pricing data
  */
 const fetchPricingData = async (apiKey) => {
 	try{
 		const response = await axios.get(`${CONFIG.PRICEMPIRE_API_URL}/v2/getAllItems`, {
 			params: {
 				api_key: apiKey,
-				source: 'buff, buff_avg7, buff_lastsale'
+				source: 'buff,buff163_quick,buff_avg7,buff_avg30'
 			}
 		});
 

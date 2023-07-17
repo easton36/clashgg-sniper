@@ -1,9 +1,21 @@
 const Logger = require('../utils/logger.util');
 const { formatListing } = require('./helpers');
+const { Item } = require('../db/index');
 
 const CONFIG = require('../config');
 
 const ACTIVE_LISTINGS = {};
+
+/**
+ * Fetches an item price from the database
+ * @param {String} name - The name of the item
+ * @returns {Object} The item pricing data
+ */
+const fetchItemPrice = async (name) => {
+	const data = await Item.findOne({ name });
+
+	return data;
+};
 
 /**
  * When a new p2p listing is created
@@ -45,16 +57,23 @@ const listingRemoved = (data) => {
 /**
  * When a p2p listing is updated
  * @param {Object} data - The data of the p2p listing
+ * @param {String} steamId - The Steam ID of the us
  * @returns {String} The status of the p2p listing
  */
-const listingUpdated = (data) => {
+const listingUpdated = (data, steamId) => {
 	const listingStatus = data?.status;
 
 	switch(listingStatus){
-	case 'ASKED':
-		Logger.info(`[WEBSOCKET] We ASKED to purchase a p2p listing. ${formatListing(data, true)}`);
-		break;
+	case 'ASKED': {
+		const sellerSteamId = data?.seller?.steamId;
 
+		if(sellerSteamId === steamId){
+			Logger.info(`[WEBSOCKET] We were ASKED to sell a p2p listing. ${formatListing(data, true)}`);
+		} else{
+			Logger.info(`[WEBSOCKET] We ASKED to purchase a p2p listing. ${formatListing(data, true)}`);
+		}
+		break;
+	}
 	case 'CANCELED-SYSTEM':
 		Logger.warn(`[WEBSOCKET] A p2p listing we asked to purchase was CANCELED by the system. ${formatListing(data, true)}`);
 		break;

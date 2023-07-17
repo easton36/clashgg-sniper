@@ -7,16 +7,20 @@ module.exports = mongoose.model('item', new mongoose.Schema({
 	},
 	prices: {
 		buff163: {
-			sourcePrice: Number,
-			sourceCurrency: String,
-			price: Number,
-			createdAt: String
+			type: Number,
+			required: false
 		},
 		buff163_quick: {
-			sourcePrice: Number,
-			sourceCurrency: String,
-			price: Number,
-			createdAt: String
+			type: Number,
+			required: false
+		},
+		buff163_avg7: {
+			type: Number,
+			required: false
+		},
+		buff163_avg30: {
+			type: Number,
+			required: false
 		}
 	}
 }, {

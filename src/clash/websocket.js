@@ -22,13 +22,54 @@ const ClashWebsocket = ({
 	accessToken,
 	cfClearance
 }, callback) => {
-	const socket = new WebSocket(CONFIG.CLASH_WS_URL, {
-		headers: {
-			...DEFAULT_HEADERS,
-			Authorization: `Bearer ${accessToken}`,
-			Cookie: `cf_clearance=${cfClearance}`
-		}
-	});
+	let socket;
+
+	/**
+	 * Initialize the WebSocket connection
+	 */
+	const initialize = () => {
+		socket = new WebSocket(CONFIG.CLASH_WS_URL, {
+			headers: {
+				...DEFAULT_HEADERS,
+				Authorization: `Bearer ${accessToken}`,
+				Cookie: `cf_clearance=${cfClearance}`
+			}
+		});
+
+		// WebSocket events
+		socket.on('open', _open);
+		socket.on('error', _error);
+		socket.on('close', _close);
+		socket.on('message', _message);
+	};
+
+	/**
+	 * Close the WebSocket connection
+	 */
+	const close = () => {
+		socket.close();
+
+		// turn off the listeners
+		socket.off('open', _open);
+		socket.off('error', _error);
+		socket.off('close', _close);
+		socket.off('message', _message);
+	};
+
+	/**
+	 * Update the access token
+	 * @param {String} newAccessToken - The new access token
+	 */
+	const updateAccessToken = (newAccessToken) => {
+		// update the access token
+		accessToken = newAccessToken;
+
+		// close the WebSocket connection
+		close();
+
+		// re-initialize the WebSocket connection
+		initialize();
+	};
 
 	/**
 	 * When the WebSocket connection is opened
@@ -61,6 +102,8 @@ const ClashWebsocket = ({
 			reason = reason.toString();
 		}
 
+		callback('socket_closed');
+
 		return Logger.warn(`[WEBSOCKET] WebSocket closed. Code: ${code}, Reason: ${reason || 'N/A'}`);
 	};
 
@@ -79,11 +122,12 @@ const ClashWebsocket = ({
 		return Logger.warn(`[WEBSOCKET] Received unknown message: ${message}`);
 	};
 
-	// WebSocket events
-	socket.on('open', _open);
-	socket.on('error', _error);
-	socket.on('close', _close);
-	socket.on('message', _message);
+	// initialize the WebSocket connection
+	initialize();
+
+	return {
+		updateAccessToken
+	};
 };
 
 module.exports = ClashWebsocket;
