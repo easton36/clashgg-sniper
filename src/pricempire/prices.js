@@ -36,6 +36,18 @@ const fetchAndInsertPricingData = async (apiKey) => {
 	return true;
 };
 
+/**
+ * Fetches an item price from the database
+ * @param {String} name - The name of the item
+ * @returns {Object} The item pricing data
+ */
+const fetchItemPrice = async (name) => {
+	const data = await Item.findOne({ name });
+
+	return data;
+};
+
 module.exports = {
-	fetchAndInsertPricingData
+	fetchAndInsertPricingData,
+	fetchItemPrice
 };

@@ -12,15 +12,12 @@ const {
 	buyListing,
 	getSteamInventory,
 	deleteListing,
-	createListing
+	createListing,
+	getActiveListings
 } = require('./clash/api');
-const {
-	newListingCreated,
-	listingRemoved,
-	listingUpdated
-} = require('./clash/listings');
 const { itemPurchased, scriptStarted, listingCanceled } = require('./discord/webhook');
-const { fetchAndInsertPricingData } = require('./pricempire/prices');
+const { fetchAndInsertPricingData, fetchItemPrice } = require('./pricempire/prices');
+const { formatListing } = require('./clash/helpers');
 
 // Print all config settings in a nice column format
 const startupMessage = () => {
@@ -51,6 +48,9 @@ const Manager = () => {
 	let accountBalance = 0;
 
 	const ourListings = {};
+	const listedItems = [];
+
+	const listingsToWatch = {};
 
 	/**
 	 * Sends a message to the console every hour to let us know the script is still running
@@ -106,6 +106,12 @@ const Manager = () => {
 		}
 
 		if(CONFIG.ENABLE_BULK_SELL){
+			// Fetch all active listings
+			const activeListings = await getActiveListings();
+			for(const listing of activeListings){
+				ourListings[listing.id] = listing;
+				listedItems.push(listing.item.externalId);
+			}
 			// List all items in inventory on Clash
 			await listAllItems();
 		}
@@ -159,14 +165,21 @@ const Manager = () => {
 	const listAllItems = async () => {
 		const inventory = await getSteamInventory();
 		if(!inventory) return Logger.error('No inventory was found');
+		// filter inventory for items that have not been listed
+		const filteredInventory = inventory.filter(item => {
+			const alreadyListed = Object.values(ourListings).some(listing => listing.item.externalId === item.externalId);
 
-		for(const item of inventory){
+			return !alreadyListed;
+		});
+		// list all items in filteredInventory
+		for(const item of filteredInventory){
 			const askPrice = item?.price * CONFIG.INVENTORY_SELL_MARKUP_PERCENT;
 			// create listing
 			const listing = await createListing(item.externalId, askPrice);
 			if(!listing) return;
 
 			ourListings[listing.id] = listing;
+			listedItems.push(item.externalId);
 
 			Logger.info(`Successfully listed item: ${item?.name} for $${askPrice / 100} coins!`);
 		}
@@ -182,41 +195,138 @@ const Manager = () => {
 		case 'auth':
 			return Logger.info(`[WEBSOCKET] Successfully authenticated with the Clash.gg WebSocket server. User ID: ${data.userId}, Steam ID: ${data.steamId}, Role: ${data.role}`);
 
-		case 'p2p:listing:new': {
-			try{
-				const shouldSnipe = newListingCreated(data);
-				if(!shouldSnipe) return;
-				// buy the listing
-				const purchased = await buyListing(data.id);
-				if(!purchased) return;
+		case 'p2p:listing:new': return _newListingCreated(data);
+		case 'p2p:listing:remove': return _listingRemoved(data);
+		case 'p2p:listing:update': return _listingUpdated(data);
+		}
+	};
 
-				// reduce account balance
-				accountBalance -= data.item.askPrice;
+	/**
+	 * When a new p2p listing is created
+	 * @param {Object} data - The data of the p2p listing
+	 * @returns {Boolean} Whether or not the listing was purchased
+	 */
+	const _newListingCreated = async (data) => {
+		try{
+			if(!CONFIG.ENABLE_ITEM_SNIPING) return false;
 
-				if(CONFIG.DISCORD_WEBHOOK_URL){
-					// send webhook
-					itemPurchased(CONFIG.DISCORD_WEBHOOK_URL, data);
+			const { item } = data;
+			// check if we can afford the item
+			if(data?.item?.askPrice > accountBalance){
+				Logger.info(`[WEBSOCKET] Received new p2p listing, but it was ignored due to INSUFFICIENT BALANCE. Current Balance: ${accountBalance}, ${formatListing(data)}`);
+			}
+
+			const markupPercentage = item?.askPrice / item?.price;
+
+			// check if meets criteria
+			const containsStringToIgnore = CONFIG.STRINGS_TO_IGNORE.some(string => item?.name.toLowerCase().includes(string.toLowerCase()));
+			if(item?.askPrice < CONFIG.MIN_PRICE || item?.askPrice > CONFIG.MAX_PRICE || CONFIG.ITEMS_TO_IGNORE.includes(item?.name) || markupPercentage > CONFIG.MAX_MARKUP_PERCENT || containsStringToIgnore){
+				Logger.info(`[WEBSOCKET] Received new p2p listing, but it was ignored. ${formatListing(data, 'ignored')}`);
+
+				return false;
+			}
+
+			let extraData = {};
+			if(CONFIG.CHECK_BUFF_PRICE){
+				const priceData = await fetchItemPrice(item.name);
+				if(!priceData) return false;
+				// calculate buff percentage, convert askPrice to USD
+				const askPriceUSD = item.askPrice * CONFIG.CLASH_COIN_CONVERSION;
+				const buffPercentage = askPriceUSD / priceData?.prices?.buff163;
+				// check if buff percentage is greater than max buff percentage
+				if(buffPercentage > CONFIG.MAX_BUFF_PERCENT){
+					Logger.info(`[WEBSOCKET] Received new p2p listing, but it was ignored. ${formatListing(data, 'buff', extraData)}`);
+
+					return false;
 				}
-			} catch(err){
-				accessToken = await getAccessToken(CONFIG.REFRESH_TOKEN, CONFIG.CF_CLEARANCE);
-				// update websocket access token
-				websocket.updateAccessToken(accessToken);
 
-				Logger.info(`Regenerated access token: ${accessToken}`);
+				extraData = { priceData, buffPercentage, askPriceUSD };
+			}
+
+			listingsToWatch[data.id] = data;
+			Logger.info(`[WEBSOCKET] Received new p2p listing to SNIPE. ${formatListing(data, 'buff', extraData)}`);
+
+			// buy the listing
+			const purchased = await buyListing(data.id);
+			if(!purchased) return false;
+
+			// reduce account balance
+			accountBalance -= data.item.askPrice;
+
+			if(CONFIG.DISCORD_WEBHOOK_URL){
+				// send webhook
+				itemPurchased(CONFIG.DISCORD_WEBHOOK_URL, data);
+			}
+
+			return true;
+		} catch(err){
+			Logger.error(`[WEBSOCKET] An error occurred while processing a new p2p listing: ${err.message || err}`);
+			generateAccessToken();
+		}
+	};
+
+	/**
+	 * When a p2p listing is removed
+	 * @param {Object} data - The data of the p2p listing
+	 * @returns {void}
+	 */
+	const _listingRemoved = (data) => {
+		const listing = listingsToWatch[data.id];
+		if(!listing) return;
+
+		delete listingsToWatch[data.id];
+
+		return Logger.info(`[WEBSOCKET] A p2p listing we were watching was removed. ${formatListing(listing, true)}`);
+	};
+
+	/**
+	 * When a p2p listing is updated
+	 * @param {Object} data - The data of the p2p listing
+	 * @returns {String} The status of the p2p listing
+	 */
+	const _listingUpdated = (data) => {
+		const listingStatus = data?.status;
+
+		switch(listingStatus){
+		case 'ASKED': {
+			const sellerSteamId = data?.seller?.steamId;
+
+			if(sellerSteamId === steamId){
+				Logger.info(`[WEBSOCKET] We were ASKED to sell a p2p listing. ${formatListing(data, true)}`);
+			} else{
+				Logger.info(`[WEBSOCKET] We ASKED to purchase a p2p listing. ${formatListing(data, true)}`);
 			}
 			break;
 		}
-		case 'p2p:listing:remove': return listingRemoved(data);
-		case 'p2p:listing:update': {
-			const listingStatus = listingUpdated(data, steamId);
-			if(listingStatus === 'CANCELED-SYSTEM' && CONFIG.DISCORD_WEBHOOK_URL){
+		case 'CANCELED-SYSTEM':
+			if(CONFIG.DISCORD_WEBHOOK_URL){
 				// send webhook
 				listingCanceled(CONFIG.DISCORD_WEBHOOK_URL, data);
 			}
 
+			Logger.warn(`[WEBSOCKET] A p2p listing we asked to purchase was CANCELED by the system. ${formatListing(data, true)}`);
 			break;
+
+		// seller has accepted our offer
+		case 'ANSWERED':
+			Logger.info(`[WEBSOCKET] A p2p listing we asked to purchase was ACCEPTED by the seller. ${formatListing(data, true)}`);
+			break;
+
+		// seller has sent the steam trade
+		case 'SENT':
+			Logger.info(`[WEBSOCKET] A p2p listing we asked to purchase was SENT by the seller. ${formatListing(data, true)}`);
+			break;
+
+		// we accepted the steam trade
+		case 'RECEIVED':
+			Logger.info(`[WEBSOCKET] A p2p listing we asked to purchase was RECEIVED by us. ${formatListing(data, true)}`);
+			break;
+
+		default:
+			Logger.info(`[WEBSOCKET] Received unknown status ${listingStatus} for p2p listing. ${formatListing(data, true)}`);
 		}
-		}
+
+		return listingStatus;
 	};
 
 	return {
