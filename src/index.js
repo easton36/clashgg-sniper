@@ -382,10 +382,10 @@ const Manager = () => {
 	const _listingUpdated = (data) => {
 		const listingStatus = data?.status;
 
+		const sellerSteamId = data?.seller?.steamId;
+
 		switch(listingStatus){
 		case 'ASKED': {
-			const sellerSteamId = data?.seller?.steamId;
-
 			if(sellerSteamId === steamId){
 				return _processSellOrderAsked(data);
 			} else{
@@ -404,8 +404,6 @@ const Manager = () => {
 		}
 		// seller has accepted our offer
 		case 'ANSWERED': {
-			const sellerSteamId = data?.seller?.steamId;
-
 			if(sellerSteamId === steamId){
 				return _processSellOrderAnswered(data);
 			} else{
@@ -416,12 +414,20 @@ const Manager = () => {
 		}
 		// seller has sent the steam trade
 		case 'SENT':
-			Logger.info(`[WEBSOCKET] A p2p listing we asked to purchase was SENT by the seller. ${formatListing(data)}`);
+			if(sellerSteamId === steamId){
+				Logger.info(`[WEBSOCKET] We SENT a p2p listing we sold. ${formatListing(data)}`);
+			} else{
+				Logger.info(`[WEBSOCKET] A p2p listing we asked to purchase was SENT by the seller. ${formatListing(data)}`);
+			}
 			break;
 
 		// we accepted the steam trade
 		case 'RECEIVED':
-			Logger.info(`[WEBSOCKET] A p2p listing we asked to purchase was RECEIVED by us. ${formatListing(data)}`);
+			if(sellerSteamId === steamId){
+				Logger.info(`[WEBSOCKET] The buyer RECEIVED a p2p listing we sold. ${formatListing(data)}`);
+			} else{
+				Logger.info(`[WEBSOCKET] A p2p listing we asked to purchase was RECEIVED by us. ${formatListing(data)}`);
+			}
 			break;
 
 		default:
