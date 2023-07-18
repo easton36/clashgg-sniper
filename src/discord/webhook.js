@@ -97,8 +97,9 @@ const itemPurchased = async (webhookURL, data) => {
  * Discord webhook that a listing we purchased was canceled
  * @param {String} webhookURL - The URL of the Discord webhook
  * @param {Object} data - The data of the p2p listing
+ * @param {Boolean} sell - Whether or not the listing was a sell listing
  */
-const listingCanceled = async (webhookURL, data) => {
+const listingCanceled = async (webhookURL, data, sell) => {
 	try{
 		const response = await axios({
 			method: 'POST',
@@ -106,8 +107,8 @@ const listingCanceled = async (webhookURL, data) => {
 			data: {
 				content: null,
 				embeds: [{
-					title: 'Purchase Canceled',
-					description: 'A listing we purchased was canceled by the system.',
+					title: sell ? 'Sell Canceled' : 'Purchase Canceled',
+					description: `A listing we ${sell ? 'were selling' : 'purchased'} was canceled by the system.`,
 					color: 16711680,
 					fields: [
 						{

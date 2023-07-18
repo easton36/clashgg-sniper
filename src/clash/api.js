@@ -206,6 +206,35 @@ const createListing = async (externalId, price) => {
 	}
 };
 
+/**
+ * Answers a Clash.gg listing asking to sell an item
+ * @param {String} listingId - The ID of the listing to answer
+ * @returns {Promise<Boolean>} Whether or not the listing was answered
+ */
+const answerListing = async (listingId) => {
+	try{
+		const response = await instance({
+			method: 'PATCH',
+			url: `/steam-p2p/listings/${listingId}/answer`
+		});
+
+		if(!response?.data?.success){
+			Logger.error(`[API] An error occurred while answering the listing (${listingId}): ${response?.data?.message || 'No message was found'}`);
+
+			return false;
+		}
+
+		Logger.info(`[API] Successfully answered the listing (${listingId})!`);
+
+		return true;
+	} catch(err){
+		const errMessage = err?.response?.data?.message || err.message || err;
+		Logger.error(`[API] An error occurred while answering the listing (${listingId}): ${errMessage}`);
+
+		return false;
+	}
+};
+
 module.exports = {
 	getAccessToken,
 	getProfile,
@@ -213,5 +242,6 @@ module.exports = {
 	buyListing,
 	getSteamInventory,
 	deleteListing,
-	createListing
+	createListing,
+	answerListing
 };

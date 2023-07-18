@@ -113,19 +113,6 @@ module.exports = ({
 	});
 
 	/**
-	 * Accept a Steam trade confirmation
-	 */
-	const acceptConfirmation = (confirmationId) => new Promise((resolve, reject) => {
-		if(!identitySecret) return reject(new Error('No identity secret'));
-
-		community.acceptConfirmationForObject(identitySecret, confirmationId, (err) => {
-			if(err) return reject(err);
-
-			return resolve(true);
-		});
-	});
-
-	/**
 	 * Accept all Steam trade confirmations
 	 */
 	const acceptAllConfirmations = () => new Promise((resolve, reject) => {
@@ -196,6 +183,125 @@ module.exports = ({
 			});
 		} catch(err){
 			return reject(err);
+		}
+	});
+
+	/**
+	 * Cancel an offer with a specific offer ID
+	 * @param {Object} offer - The offer to cancel
+	 * @returns {Promise<Object>} The result of the cancellation
+	 */
+	const cancelOffer = (offer) => new Promise((resolve, reject) => {
+		try{
+			Logger.info(`[${username}] Attempting to cancel offer ${offer.id}`);
+
+			// cancel the offer
+			offer.cancel((err, result) => {
+				if(err){
+					Logger.warn(`[${username}] Failed to cancel offer ${offer.id}: ${err.message || err}`);
+
+					return reject(err);
+				}
+
+				resolve(result);
+			});
+		} catch(err){
+			return reject(err);
+		}
+	});
+
+	/**
+	 * Create and send a new trade offer
+	 * @async
+	 * @param {String} tradelink - The tradelink to send the offer to
+	 * @param {Object} item - The item to send
+	 * @param {String} item.appid - The appid of the item
+	 * @param {String} item.contextid - The contextid of the item
+	 * @param {String} item.assetid - The assetid of the item
+	 * @param {String} item.name - The name of the item
+	 * @param {String} message - OPTIONAL, The message to send with the offer
+	 * @returns {Promise<TradeOffer>} The trade offer
+	 * @throws {Error} If the offer cannot be sent
+	 */
+	const sendOffer = async (tradelink, item, message) => {
+		const itemString = `ITEM: ${item.name}, ASSETID: ${item.assetid}`;
+
+		try{
+			const offer = createOffer(tradelink);
+			if(message){
+				offer.setMessage(message);
+			}
+			// add item to the offer
+			offer.addMyItem({
+				appid: item.appid,
+				assetid: item.assetid,
+				id: item.assetid,
+				contextid: item.contextid,
+				amount: 1
+			});
+
+			const status = await _attemptOfferSend(offer, tradelink);
+			Logger.info(`[${username}] Sent offer ${offer.id} to ${tradelink} with status ${status}. ${itemString}`);
+
+			if(status === 'pending'){
+				_mobileConfirmOffer(offer.id);
+			}
+
+			return offer;
+		} catch(err){
+			Logger.error(`[${username}] Failed to send offer to ${tradelink}. ${itemString}: ${err.message || err}`);
+
+			return false;
+		}
+	};
+
+	/**
+	 * Attempt to send a trade offer
+	 * @async
+	 * @private
+	 * @param {TradeOffer} offer - The offer to send
+	 * @param {*} tradelink - The tradelink to send the offer to
+	 * @returns {Promise<Object>}
+	 */
+	const _attemptOfferSend = (offer, tradelink) => new Promise((resolve, reject) => {
+		try{
+			Logger.info(`[${username}] Attempting to send offer to ${tradelink}`);
+
+			offer.send((err, result) => {
+				if(err){
+					Logger.warn(`[${username}] Failed to send offer to ${tradelink}: ${err.message || err}`);
+
+					return reject(err);
+				}
+
+				resolve(result);
+			});
+		} catch(err){
+			return reject(err);
+		}
+	});
+
+	/**
+	 * Confirm an offer on mobile
+	 * @async
+	 * @param {String} offerId - The offer id to confirm
+	 * @returns {Promise<void>}
+	 */
+	const _mobileConfirmOffer = async (offerId) => new Promise((resolve, reject) => {
+		try{
+			Logger.info(`[${username}] Attempting to confirm offer ${offerId}`);
+
+			community.acceptConfirmationForObject(identitySecret, offerId, (err) => {
+				if(err){
+					return reject(err);
+				}
+
+				return resolve(true);
+			});
+
+			Logger.info(`[${username}] Mobile confirmed offer: ${offerId}`);
+		} catch(err){
+			Logger.warn(`[${username}] Failed to confirm offer ${offerId}: ${err.message || err}`);
 		}
 	});
 
@@ -335,11 +441,11 @@ module.exports = ({
 
 		fetchConfirmations,
 
-		acceptConfirmation,
 		acceptAllConfirmations,
 
 		createOffer,
 		attemptOfferSend,
+		cancelOffer,
 
 		login,
 		reLogin

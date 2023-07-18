@@ -13,7 +13,8 @@ const {
 	getSteamInventory,
 	deleteListing,
 	createListing,
-	getActiveListings
+	getActiveListings,
+	answerListing
 } = require('./clash/api');
 const { itemPurchased, scriptStarted, listingCanceled } = require('./discord/webhook');
 const { fetchAndInsertPricingData, fetchItemPrice } = require('./pricempire/prices');
@@ -52,6 +53,8 @@ const Manager = () => {
 
 	const ourListings = {};
 	const listedItems = [];
+	// store timeouts for sent trade cancels
+	const sentTradeCancelTimeouts = {};
 
 	const listingsToWatch = {};
 
@@ -204,6 +207,31 @@ const Manager = () => {
 	};
 
 	/**
+	 * Create a timeout to cancel a sent trade
+	 * @param {String} listingId - The ID of the listing
+	 * @param {Object} offer - The offer object
+	 * @param {Date} expiresAt - The date the offer expires at
+	 */
+	const createSentTradeCancelTimeout = (listingId, offer, expiresAt) => {
+		// expires at - 30 seconds
+		const timeUntilExpiration = expiresAt - new Date() - (1000 * 30);
+		const timeout = setTimeout(async () => {
+			Logger.info(`[TIMEOUT] Cancelling sent trade for listing ID: ${listingId}, offer ID: ${offer.id}`);
+
+			// cancel trade with offer id
+			const canceled = await steamAccount.cancelOffer(offer);
+			if(!canceled) return;
+
+			Logger.info(`[TIMEOUT] Successfully cancelled sent trade for listing ID: ${listingId}, offer ID: ${offer.id}`);
+
+			// delete timeout
+			delete sentTradeCancelTimeouts[listingId];
+		}, timeUntilExpiration);
+
+		sentTradeCancelTimeouts[listingId] = timeout;
+	};
+
+	/**
 	 * Websocket callback for the Clash.gg manager
 	 * @param {String} event - The event of the websocket
 	 * @param {Object} data - The data of the websocket
@@ -303,7 +331,47 @@ const Manager = () => {
 
 		delete listingsToWatch[data.id];
 
-		return Logger.info(`[WEBSOCKET] A p2p listing we were watching was removed. ${formatListing(listing, true)}`);
+		return Logger.info(`[WEBSOCKET] A p2p listing we were watching was removed. ${formatListing(listing)}`);
+	};
+
+	/**
+	 * Process a sell order that we asked to sell
+	 * @param {Object} data - The data of the p2p listing
+	 */
+	const _processSellOrderAsked = async (data) => {
+		Logger.info(`[WEBSOCKET] We ASKED to sell a p2p listing. ${formatListing(data)}`);
+		// update listing
+		ourListings[data.id] = data;
+		// answer listing
+		await answerListing(data.id);
+	};
+
+	/**
+	 * Send a trade offer to the seller
+	 * @param {Object} data - The data of the p2p listing
+	 */
+	const _processSellOrderAnswered = async (data) => {
+		Logger.info(`[WEBSOCKET] We ANSWERED to sell a p2p listing. ${formatListing(data)}`);
+		// update listing
+		ourListings[data.id] = data;
+		// get info needed to send trade
+		const buyerTradelink = data?.buyerTradelink;
+		const [appid, contextid, assetid] = data?.item?.externalId.split('|');
+		// send trade
+		const offer = steamAccount.sendOffer(buyerTradelink, {
+			appid,
+			contextid,
+			assetid,
+			name: data?.item?.name
+		});
+		// create timeout to cancel trade
+		if(offer){
+			createSentTradeCancelTimeout(data.id, offer, data?.stepExpiresAt);
+		} else{ // if we couldn't send the offer, cancel the listing
+			Logger.error(`[WEBSOCKET] We were ASKED to sell a p2p listing, but we could not send the trade. DELETING LISTING... ${formatListing(data)}`);
+
+			await deleteListing(data.id);
+		}
 	};
 
 	/**
@@ -319,38 +387,45 @@ const Manager = () => {
 			const sellerSteamId = data?.seller?.steamId;
 
 			if(sellerSteamId === steamId){
-				Logger.info(`[WEBSOCKET] We were ASKED to sell a p2p listing. ${formatListing(data, true)}`);
+				return _processSellOrderAsked(data);
 			} else{
-				Logger.info(`[WEBSOCKET] We ASKED to purchase a p2p listing. ${formatListing(data, true)}`);
+				Logger.info(`[WEBSOCKET] We ASKED to purchase a p2p listing. ${formatListing(data)}`);
 			}
 			break;
 		}
-		case 'CANCELED-SYSTEM':
+		case 'CANCELED-SYSTEM': {
 			if(CONFIG.DISCORD_WEBHOOK_URL){
 				// send webhook
 				listingCanceled(CONFIG.DISCORD_WEBHOOK_URL, data);
 			}
 
-			Logger.warn(`[WEBSOCKET] A p2p listing we asked to purchase was CANCELED by the system. ${formatListing(data, true)}`);
+			Logger.warn(`[WEBSOCKET] A p2p listing we asked to purchase was CANCELED by the system. ${formatListing(data)}`);
 			break;
-
+		}
 		// seller has accepted our offer
-		case 'ANSWERED':
-			Logger.info(`[WEBSOCKET] A p2p listing we asked to purchase was ACCEPTED by the seller. ${formatListing(data, true)}`);
-			break;
+		case 'ANSWERED': {
+			const sellerSteamId = data?.seller?.steamId;
 
+			if(sellerSteamId === steamId){
+				return _processSellOrderAnswered(data);
+			} else{
+				Logger.info(`[WEBSOCKET] We ASKED to purchase a p2p listing. ${formatListing(data)}`);
+			}
+			Logger.info(`[WEBSOCKET] A p2p listing we asked to purchase was ACCEPTED by the seller. ${formatListing(data)}`);
+			break;
+		}
 		// seller has sent the steam trade
 		case 'SENT':
-			Logger.info(`[WEBSOCKET] A p2p listing we asked to purchase was SENT by the seller. ${formatListing(data, true)}`);
+			Logger.info(`[WEBSOCKET] A p2p listing we asked to purchase was SENT by the seller. ${formatListing(data)}`);
 			break;
 
 		// we accepted the steam trade
 		case 'RECEIVED':
-			Logger.info(`[WEBSOCKET] A p2p listing we asked to purchase was RECEIVED by us. ${formatListing(data, true)}`);
+			Logger.info(`[WEBSOCKET] A p2p listing we asked to purchase was RECEIVED by us. ${formatListing(data)}`);
 			break;
 
 		default:
-			Logger.info(`[WEBSOCKET] Received unknown status ${listingStatus} for p2p listing. ${formatListing(data, true)}`);
+			Logger.info(`[WEBSOCKET] Received unknown status ${listingStatus} for p2p listing. ${formatListing(data)}`);
 		}
 
 		return listingStatus;

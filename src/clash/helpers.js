@@ -17,7 +17,7 @@ const formatListing = (data, status, extraData) => {
 		itemString += `Item Ask Price (USD): ${extraData.askPriceUSD}, Item Buff Price: ${extraData?.buffPrice}, Buff Percentage: ${extraData.buffPercentage}`;
 		break;
 
-	case 'ignored':
+	case 'extra':
 		itemString += `\n\t\tItem Float: ${data.item?.float || 'N/A'}, Item Stickers: ${data.item?.stickers?.map(sticker => `Slot ${sticker.slot}: ${sticker.name}`).join(', ') || 'None'}`;
 		break;
 	}
