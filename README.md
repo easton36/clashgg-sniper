@@ -10,6 +10,7 @@ It will also automatically sell items in bulk at a markup percentage that you sp
 	- Blacklist specific items
 	- Purchase items based on Clash.gg markup percentage
 	- Purchase items based on Buff163 percentage
+	- Doppler phase and price checking (CLASH.GG DOESN'T PRICE DOPPLER GEMS)
  - Automatic item selling
 	- Automatically send trade offers when we sell items
  - Steam account management
