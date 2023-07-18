@@ -47,6 +47,8 @@ const Manager = () => {
 	let steamId;
 	let accountBalance = 0;
 
+	let enableSniping = CONFIG.ENABLE_ITEM_SNIPING;
+
 	const ourListings = {};
 	const listedItems = [];
 
@@ -186,6 +188,20 @@ const Manager = () => {
 	};
 
 	/**
+	 * Modify current balance and take action if needed
+	 * @param {Number} balanceChange - The amount to change the balance by
+	 */
+	const modifyBalance = async (balanceChange) => {
+		accountBalance += balanceChange;
+
+		if(accountBalance < CONFIG.MIN_PRICE){
+			Logger.error(`Account balance is currently ${accountBalance}, too low to snipe anything. Disabling sniping...`);
+
+			enableSniping = false;
+		}
+	};
+
+	/**
 	 * Websocket callback for the Clash.gg manager
 	 * @param {String} event - The event of the websocket
 	 * @param {Object} data - The data of the websocket
@@ -208,12 +224,12 @@ const Manager = () => {
 	 */
 	const _newListingCreated = async (data) => {
 		try{
-			if(!CONFIG.ENABLE_ITEM_SNIPING) return false;
+			if(!enableSniping) return false;
 
 			const { item } = data;
 			// check if we can afford the item
 			if(data?.item?.askPrice > accountBalance){
-				Logger.info(`[WEBSOCKET] Received new p2p listing, but it was ignored due to INSUFFICIENT BALANCE. Current Balance: ${accountBalance}, ${formatListing(data)}`);
+				Logger.warn(`[WEBSOCKET] Received new p2p listing, but it was ignored due to INSUFFICIENT BALANCE. Current Balance: ${accountBalance}, ${formatListing(data)}`);
 			}
 
 			const markupPercentage = item?.askPrice / item?.price;
@@ -251,7 +267,7 @@ const Manager = () => {
 			if(!purchased) return false;
 
 			// reduce account balance
-			accountBalance -= data.item.askPrice;
+			modifyBalance(-data.item.askPrice);
 
 			if(CONFIG.DISCORD_WEBHOOK_URL){
 				// send webhook

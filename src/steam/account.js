@@ -262,7 +262,13 @@ module.exports = ({
 	 * @private
 	 */
 	const _accountLimitations = (limited, communityBanned, locked) => {
-		Logger.info(`[${username}] Account limitations: limited=${limited} communityBanned=${communityBanned} locked=${locked}`);
+		const message = `[${username}] Account limitations: limited=${limited} communityBanned=${communityBanned} locked=${locked}`;
+
+		if(limited || communityBanned || locked){
+			Logger.warn(message);
+		} else{
+			Logger.info(message);
+		}
 	};
 
 	/**
