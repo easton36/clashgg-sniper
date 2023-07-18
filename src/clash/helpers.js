@@ -14,7 +14,7 @@ const formatListing = (data, status, extraData) => {
 
 	switch(status){
 	case 'buff':
-		itemString += `Item Ask Price (USD): ${extraData.askPriceUSD}, Item Buff Price: ${extraData?.priceData?.prices?.buff163}, Buff Percentage: ${extraData.buffPercentage}`;
+		itemString += `Item Ask Price (USD): ${extraData.askPriceUSD}, Item Buff Price: ${extraData?.buffPrice}, Buff Percentage: ${extraData.buffPercentage}`;
 		break;
 
 	case 'ignored':

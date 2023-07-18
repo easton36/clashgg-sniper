@@ -17,6 +17,7 @@ const {
 } = require('./clash/api');
 const { itemPurchased, scriptStarted, listingCanceled } = require('./discord/webhook');
 const { fetchAndInsertPricingData, fetchItemPrice } = require('./pricempire/prices');
+const { checkDopplerPhase } = require('./pricempire/doppler');
 const { formatListing } = require('./clash/helpers');
 
 // Print all config settings in a nice column format
@@ -79,6 +80,7 @@ const Manager = () => {
 		// Initializing the database if enabled
 		if(CONFIG.PRICEMPIRE_API_KEY){
 			await MongoManager.connect();
+			await fetchAndInsertPricingData(CONFIG.PRICEMPIRE_API_KEY);
 		}
 
 		await generateAccessToken();
@@ -169,9 +171,9 @@ const Manager = () => {
 		if(!inventory) return Logger.error('No inventory was found');
 		// filter inventory for items that have not been listed
 		const filteredInventory = inventory.filter(item => {
-			const alreadyListed = Object.values(ourListings).some(listing => listing.item.externalId === item.externalId);
+			const alreadyListed = listedItems.includes(item.externalId);
 
-			return !alreadyListed;
+			return !alreadyListed && item.isAccepted && item.isTradable;
 		});
 		// list all items in filteredInventory
 		for(const item of filteredInventory){
@@ -234,9 +236,15 @@ const Manager = () => {
 
 			const markupPercentage = item?.askPrice / item?.price;
 
+			const dopplerPhase = checkDopplerPhase(item.imageUrl);
 			// check if meets criteria
 			const containsStringToIgnore = CONFIG.STRINGS_TO_IGNORE.some(string => item?.name.toLowerCase().includes(string.toLowerCase()));
-			if(item?.askPrice < CONFIG.MIN_PRICE || item?.askPrice > CONFIG.MAX_PRICE || CONFIG.ITEMS_TO_IGNORE.includes(item?.name) || markupPercentage > CONFIG.MAX_MARKUP_PERCENT || containsStringToIgnore){
+			if(
+				item?.askPrice < CONFIG.MIN_PRICE ||
+				item?.askPrice > CONFIG.MAX_PRICE ||
+				CONFIG.ITEMS_TO_IGNORE.includes(item?.name) || markupPercentage > CONFIG.MAX_MARKUP_PERCENT || containsStringToIgnore ||
+				(CONFIG.CHECK_BUFF_PRICE && dopplerPhase) // if item has a doppler phase, we should also check buff price... could be a good deal!
+			){
 				Logger.info(`[WEBSOCKET] Received new p2p listing, but it was ignored. ${formatListing(data, 'ignored')}`);
 
 				return false;
@@ -248,15 +256,18 @@ const Manager = () => {
 				if(!priceData) return false;
 				// calculate buff percentage, convert askPrice to USD
 				const askPriceUSD = item.askPrice * CONFIG.CLASH_COIN_CONVERSION;
-				const buffPercentage = askPriceUSD / priceData?.prices?.buff163;
+				// if we have a doppler phase use that specific buff price
+				const buffPrice = priceData?.prices[dopplerPhase ? `buff163_${dopplerPhase}` : 'buff163'];
+				const buffPercentage = askPriceUSD / buffPrice;
+
+				extraData = { buffPrice, buffPercentage, askPriceUSD };
+
 				// check if buff percentage is greater than max buff percentage
 				if(buffPercentage > CONFIG.MAX_BUFF_PERCENT){
 					Logger.info(`[WEBSOCKET] Received new p2p listing, but it was ignored. ${formatListing(data, 'buff', extraData)}`);
 
 					return false;
 				}
-
-				extraData = { priceData, buffPercentage, askPriceUSD };
 			}
 
 			listingsToWatch[data.id] = data;
