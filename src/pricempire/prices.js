@@ -7,6 +7,7 @@ const { Item } = require('../db/index');
  * @param {String} apiKey - The API key for pricempire
  */
 const fetchAndInsertPricingData = async (apiKey) => {
+	const now = new Date();
 	Logger.info('[PRICEMPIRE] Fetching pricing data...');
 
 	const pricingData = await fetchPricingData(apiKey);
@@ -71,7 +72,13 @@ const fetchAndInsertPricingData = async (apiKey) => {
 		}
 	})));
 
-	Logger.info(`[PRICEMPIRE] Successfully inserted ${result?.result?.nUpserted || 0} new items and updated ${result?.result?.nModified || 0} existing items`);
+	Logger.info(`[PRICEMPIRE] Successfully inserted ${result?.result?.nUpserted || 0} new items and updated ${result?.result?.nModified || 0} existing items.`);
+	const timeTaken = new Date() - now;
+	if(timeTaken > 60 * 1000){
+		Logger.warn(`[PRICEMPIRE] Took ${timeTaken / 1000} seconds to fetch and insert pricing data.`);
+	} else{
+		Logger.info(`[PRICEMPIRE] Took ${timeTaken / 1000} seconds to fetch and insert pricing data.`);
+	}
 
 	return true;
 };

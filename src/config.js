@@ -13,6 +13,8 @@ module.exports = {
 
 	PRICEMPIRE_API_URL: 'https://api.pricempire.com',
 	PRICEMPIRE_API_KEY: process.env.PRICEMPIRE_API_KEY,
+	ENABLE_PRICE_FETCH_ON_START: process.env.ENABLE_PRICE_FETCH_ON_START === 'true',
+	PRICE_FETCH_INTERVAL: Number(process.env.PRICE_FETCH_INTERVAL),
 
 	CLASH_COIN_CONVERSION: Number(process.env.CLASH_COIN_CONVERSION),
 

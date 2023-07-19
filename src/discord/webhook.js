@@ -183,9 +183,45 @@ const tradeOfferAccepted = async (webhookURL, data) => {
 	}
 };
 
+/**
+ * If we have to pause sniping due to low balance
+ * @param {String} webhookURL - The URL of the Discord webhook
+ * @param {Number} balance - The balance of the account
+ */
+const pauseSniping = async (webhookURL, balance) => {
+	try{
+		const response = await axios({
+			method: 'POST',
+			url: webhookURL,
+			data: {
+				content: null,
+				embeds: [{
+					title: 'Paused Sniping',
+					description: 'We have paused sniping due to low balance.',
+					color: 16711680,
+					fields: [{
+						name: 'Balance (COINS)',
+						value: `$${(balance / 100).toFixed(2)}`
+					}],
+					timestamp: new Date().toJSON()
+				}],
+				username: WEBHOOK_USERNAME,
+				avatar_url: WEBHOOK_AVATAR_URL,
+				attachments: []
+			}
+		});
+
+		return Logger.info(`[DISCORD] Successfully sent the pause sniping webhook. Status: ${response.status}`);
+	} catch(err){
+		const errMessage = err?.response?.data?.message || err.message || err;
+		Logger.error(`[DISCORD] An error occurred while sending the pause sniping webhook: ${errMessage}`);
+	}
+};
+
 module.exports = {
 	scriptStarted,
 	itemPurchased,
 	listingCanceled,
-	tradeOfferAccepted
+	tradeOfferAccepted,
+	pauseSniping
 };

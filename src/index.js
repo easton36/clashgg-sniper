@@ -16,7 +16,7 @@ const {
 	getActiveListings,
 	answerListing
 } = require('./clash/api');
-const { itemPurchased, scriptStarted, listingCanceled } = require('./discord/webhook');
+const { itemPurchased, scriptStarted, listingCanceled, pauseSniping } = require('./discord/webhook');
 const { fetchAndInsertPricingData, fetchItemPrice } = require('./pricempire/prices');
 const { checkDopplerPhase } = require('./pricempire/doppler');
 const { formatListing } = require('./clash/helpers');
@@ -78,15 +78,18 @@ const Manager = () => {
 	 */
 	const initialize = async () => {
 		// We run this once an hour to just give time notice
-		setInterval(_aliveStatusUpdate, 1000 * 60 * 60); // 1 hour
+		setInterval(_aliveStatusUpdate, CONFIG.PRICE_FETCH_INTERVAL * 1000 * 60);
 
 		// Initializing the database if enabled
 		if(CONFIG.PRICEMPIRE_API_KEY){
 			await MongoManager.connect();
-			await fetchAndInsertPricingData(CONFIG.PRICEMPIRE_API_KEY);
+			if(CONFIG.ENABLE_PRICE_FETCH_ON_START){
+				await fetchAndInsertPricingData(CONFIG.PRICEMPIRE_API_KEY);
+			}
 		}
 
-		await generateAccessToken();
+		const generated = await generateAccessToken();
+		if(!generated) return;
 		await fetchProfile();
 
 		// Initializing the Steam account
@@ -130,7 +133,9 @@ const Manager = () => {
 	const generateAccessToken = async () => {
 		accessToken = await getAccessToken(CONFIG.REFRESH_TOKEN, CONFIG.CF_CLEARANCE);
 		if(!accessToken){
-			return Logger.error('No access token was found');
+			Logger.error('No access token was found');
+
+			return;
 		}
 
 		Logger.info(`Fetched access token: ${accessToken}`);
@@ -139,6 +144,8 @@ const Manager = () => {
 			// update websocket access token
 			websocket.updateAccessToken(accessToken);
 		}
+
+		return accessToken;
 	};
 
 	/**
@@ -193,7 +200,7 @@ const Manager = () => {
 	};
 
 	/**
-	 * Modify current balance and take action if needed
+	 * Modify current balance
 	 * @param {Number} balanceChange - The amount to change the balance by
 	 */
 	const modifyBalance = async (balanceChange) => {
@@ -204,6 +211,19 @@ const Manager = () => {
 
 			enableSniping = false;
 		}
+	};
+
+	/**
+	 * Checks account balance and takes action if needed
+	 */
+	const checkAccountBalance = async () => {
+		if(accountBalance > CONFIG.MIN_PRICE) return;
+
+		Logger.error(`Account balance is currently ${accountBalance}, too low to snipe anything. Disabling sniping...`);
+
+		enableSniping = false;
+
+		pauseSniping(CONFIG.DISCORD_WEBHOOK_URL, accountBalance);
 	};
 
 	/**
@@ -260,6 +280,8 @@ const Manager = () => {
 			// check if we can afford the item
 			if(data?.item?.askPrice > accountBalance){
 				Logger.warn(`[WEBSOCKET] Received new p2p listing, but it was ignored due to INSUFFICIENT BALANCE. Current Balance: ${accountBalance}, ${formatListing(data)}`);
+
+				checkAccountBalance();
 			}
 
 			const markupPercentage = item?.askPrice / item?.price;
@@ -425,6 +447,10 @@ const Manager = () => {
 		case 'RECEIVED':
 			if(sellerSteamId === steamId){
 				Logger.info(`[WEBSOCKET] The buyer RECEIVED a p2p listing we sold. ${formatListing(data)}`);
+				// update balance
+				modifyBalance(data.item.askPrice);
+				// delete listing
+				delete ourListings[data.id];
 			} else{
 				Logger.info(`[WEBSOCKET] A p2p listing we asked to purchase was RECEIVED by us. ${formatListing(data)}`);
 			}
