@@ -5,7 +5,6 @@ const TradeOfferManager = require('steam-tradeoffer-manager');
 
 const CONFIG = require('../config');
 const Logger = require('../utils/logger.util');
-const { tradeOfferAccepted } = require('../discord/webhook');
 
 const { EPersonaState } = SteamUser;
 const { ETradeOfferState } = TradeOfferManager;
@@ -21,6 +20,7 @@ const { ETradeOfferState } = TradeOfferManager;
  * @param {Object} options.proxy - OPTIONAL; The proxy for the Steam account manager
  * @param {String} options.proxy.httpProxy - OPTIONAL; The HTTP proxy for the Steam account manager
  * @param {String} options.proxy.socksProxy - OPTIONAL; The SOCKS proxy for the Steam account manager
+ * @param {Function} callback - The callback for the Steam account manager
  * @returns {Object} The Steam account manager
  */
 module.exports = ({
@@ -33,7 +33,7 @@ module.exports = ({
 		httpProxy,
 		socksProxy
 	} = {}
-}) => {
+}, callback) => {
 	const steamSessionOpts = {};
 
 	if(httpProxy) steamSessionOpts.httpProxy = httpProxy;
@@ -411,9 +411,7 @@ module.exports = ({
 
 					Logger.info(`[${username}] Accepted trade offer: ${offer.id}. Status: ${status}. Items Received: ${itemNames}`);
 
-					if(CONFIG.DISCORD_WEBHOOK_URL){
-						tradeOfferAccepted(CONFIG.DISCORD_WEBHOOK_URL, offer);
-					}
+					callback('trade_accepted', offer);
 				} catch(err){
 					Logger.error(`[${username}] Failed to accept trade offer: ${err.message || err}`);
 				}

@@ -16,7 +16,7 @@ const {
 	getActiveListings,
 	answerListing
 } = require('./clash/api');
-const { itemPurchased, scriptStarted, listingCanceled, pauseSniping } = require('./discord/webhook');
+const { itemPurchased, scriptStarted, listingCanceled, pauseSniping, tradeOfferAccepted } = require('./discord/webhook');
 const { fetchAndInsertPricingData, fetchItemPrice } = require('./pricempire/prices');
 const { checkDopplerPhase } = require('./pricempire/doppler');
 const { formatListing } = require('./clash/helpers');
@@ -57,6 +57,7 @@ const Manager = () => {
 	const sentTradeCancelTimeouts = {};
 
 	const listingsToWatch = {};
+	const purchasedListings = {};
 
 	/**
 	 * Sends a message to the console every hour to let us know the script is still running
@@ -99,7 +100,7 @@ const Manager = () => {
 				password: CONFIG.STEAM_PASSWORD,
 				sharedSecret: CONFIG.STEAM_SHARED_SECRET,
 				identitySecret: CONFIG.STEAM_IDENTITY_SECRET
-			});
+			}, _steamAccountCallback);
 
 			await steamAccount.login();
 		}
@@ -133,7 +134,15 @@ const Manager = () => {
 	const generateAccessToken = async () => {
 		accessToken = await getAccessToken(CONFIG.REFRESH_TOKEN, CONFIG.CF_CLEARANCE);
 		if(!accessToken){
-			Logger.error('No access token was found');
+			Logger.error('No access token was found. This could be an issue with your refresh token cookie, or more likely, your cf_clearance cookie. cf_clearance expires often.');
+
+			// if still no access token after 5 minutes, exit process
+			setTimeout(() => {
+				if(!accessToken){
+					Logger.error('No access token was found after 5 minutes. Exiting process...');
+					process.exit(1);
+				}
+			}, 1000 * 60 * 5); // 5 minutes
 
 			return;
 		}
@@ -177,7 +186,10 @@ const Manager = () => {
 	 * List all items in inventory on Clash
 	 */
 	const listAllItems = async () => {
+		Logger.info('Listing all items in inventory on Clash...');
+
 		const inventory = await getSteamInventory();
+		Logger.info(`Fetched inventory with ${inventory.length} items`);
 		if(!inventory) return Logger.error('No inventory was found');
 		// filter inventory for items that have not been listed
 		const filteredInventory = inventory.filter(item => {
@@ -252,6 +264,23 @@ const Manager = () => {
 	};
 
 	/**
+	 * Callback for steam account
+	 * @param {String} event - The event of the callback
+	 * @param {Object} data - The data of the callback
+	 */
+	const _steamAccountCallback = async (event, data) => {
+		switch(event){
+		case 'trade_accepted': {
+			const offer = data;
+
+			if(CONFIG.DISCORD_WEBHOOK_URL){
+				tradeOfferAccepted(CONFIG.DISCORD_WEBHOOK_URL, offer);
+			}
+		}
+		}
+	};
+
+	/**
 	 * Websocket callback for the Clash.gg manager
 	 * @param {String} event - The event of the websocket
 	 * @param {Object} data - The data of the websocket
@@ -264,6 +293,7 @@ const Manager = () => {
 		case 'p2p:listing:new': return _newListingCreated(data);
 		case 'p2p:listing:remove': return _listingRemoved(data);
 		case 'p2p:listing:update': return _listingUpdated(data);
+		case 'socket_closed': return generateAccessToken();
 		}
 	};
 
@@ -334,6 +364,8 @@ const Manager = () => {
 				// send webhook
 				itemPurchased(CONFIG.DISCORD_WEBHOOK_URL, data);
 			}
+
+			purchasedListings[data.id] = data;
 
 			return true;
 		} catch(err){

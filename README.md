@@ -16,6 +16,11 @@ It will also automatically sell items in bulk at a markup percentage that you sp
  - Steam account management
 	- Automatically accept trade offers that only GIVE us items
  - Discord Webhook notifications (nice embeds)
+ - Nice logging to console
+ - Nice JSON purchase and sell logs for accounting
+	- Logs are stored in `logs/` directory
+ - Automatic price updating
+	- Automatically update prices of items in the database with pricempire.com
 
 ### Requirements
  - Node.js v12 or higher
