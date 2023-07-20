@@ -189,8 +189,8 @@ const Manager = () => {
 		Logger.info('Listing all items in inventory on Clash...');
 
 		const inventory = await getSteamInventory();
-		Logger.info(`Fetched inventory with ${inventory.length} items`);
 		if(!inventory) return Logger.error('No inventory was found');
+		Logger.info(`Fetched inventory with ${inventory.length || 0} items`);
 		// filter inventory for items that have not been listed
 		const filteredInventory = inventory.filter(item => {
 			const alreadyListed = listedItems.includes(item.externalId);
