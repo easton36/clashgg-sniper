@@ -17,7 +17,7 @@ const DEFAULT_HEADERS = {
 	'Accept-Language': 'en-US,en;q=0.9',
 	'User-Agent': CONFIG.USER_AGENT,
 	Pragma: 'no-cache',
-	// random base64 string
+	Upgrade: 'websocket',
 	'Sec-WebSocket-Key': genSecWebSocketKey()
 };
 

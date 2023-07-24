@@ -1,6 +1,6 @@
 {
 	"name": "clashgg-sniper",
-	"version": "1.0.1",
+	"version": "1.0.2",
 	"description": "This is a simple script that will automatically purchase items from the Clash.gg store as soon as they become available, if the price is below a certain threshold.",
 	"main": "index.js",
 	"scripts": {

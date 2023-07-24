@@ -422,6 +422,22 @@ module.exports = ({
 		}
 	};
 
+	/**
+	 * Called when the process is shutting down
+	 * @returns {void}
+	 * @private
+	 */
+	const _shutdown = () => {
+		Logger.warn(`[${username}] Logging off`);
+
+		// log off from Steam
+		client.logOff();
+
+		Logger.warn('Shutting down...');
+		// exit the process
+		process.exit(0);
+	};
+
 	// Steam Event Handlers
 	client.on('loggedOn', _loggedOn);
 	client.on('webSession', _webSessionInitialized);
@@ -432,6 +448,12 @@ module.exports = ({
 	community.on('sessionExpired', _sessionExpired);
 
 	manager.on('newOffer', _newOffer);
+
+	// listen for process exit
+	process.on('SIGINT', _shutdown);
+	process.on('SIGTERM', _shutdown);
+	process.on('SIGQUIT', _shutdown);
+	process.on('beforeExit', _shutdown);
 
 	return {
 		getSteamTotpCode,
