@@ -1,14 +1,24 @@
 const WebSocket = require('ws');
+const crypto = require('crypto');
 
 const Logger = require('../utils/logger.util');
 const CONFIG = require('../config');
+
+const genSecWebSocketKey = (plaintext = 'Sampli\'s Clash Script') => {
+	const md5Hash = crypto.createHash('md5').update(plaintext).digest('hex');
+	const base64Hash = Buffer.from(md5Hash, 'hex').toString('base64');
+
+	return base64Hash;
+};
 
 const DEFAULT_HEADERS = {
 	Origin: 'https://clash.gg',
 	'Accept-Encoding': 'gzip, deflate, br',
 	'Accept-Language': 'en-US,en;q=0.9',
-	'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36',
-	Pragma: 'no-cache'
+	'User-Agent': CONFIG.USER_AGENT,
+	Pragma: 'no-cache',
+	// random base64 string
+	'Sec-WebSocket-Key': genSecWebSocketKey()
 };
 
 /**
@@ -24,6 +34,8 @@ const ClashWebsocket = ({
 }, callback) => {
 	let socket;
 	let updateInProgress = false;
+
+	let wsClosedCount = 0;
 
 	/**
 	 * Initialize the WebSocket connection
@@ -111,7 +123,13 @@ const ClashWebsocket = ({
 
 		callback('socket_closed');
 
-		return Logger.warn(`[WEBSOCKET] WebSocket closed. Code: ${code}, Reason: ${reason || 'N/A'}`);
+		wsClosedCount++;
+		Logger.warn(`[WEBSOCKET] WebSocket closed. Code: ${code}, Reason: ${reason || 'N/A'}`);
+
+		if(wsClosedCount >= 5){
+			Logger.error('[WEBSOCKET] WebSocket closed 5 times. Exiting...');
+			process.exit(1);
+		}
 	};
 
 	/**

@@ -8,6 +8,8 @@ module.exports = {
 	CLASH_WS_URL: 'wss://ws.clash.gg/',
 	CLASH_API_URL: 'https://clash.gg/api',
 
+	USER_AGENT: process.env.USER_AGENT,
+
 	REFRESH_TOKEN: process.env.REFRESH_TOKEN,
 	CF_CLEARANCE: process.env.CF_CLEARANCE,
 
