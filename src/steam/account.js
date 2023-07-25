@@ -55,6 +55,8 @@ module.exports = ({
 		pendingCancelTime: 1000 * 60 * 2 // if trade isnt confirmed by mobile after 2 minutes, cancel it
 	});
 
+	const createdOffers = {};
+
 	/**
 	 * Get steam totp code
 	 */
@@ -188,13 +190,14 @@ module.exports = ({
 
 	/**
 	 * Cancel an offer with a specific offer ID
-	 * @param {Object} offer - The offer to cancel
+	 * @param {String} offerId - The offerId to cancel
 	 * @returns {Promise<Object>} The result of the cancellation
 	 */
-	const cancelOffer = (offer) => new Promise((resolve, reject) => {
+	const cancelOffer = (offerId) => new Promise((resolve, reject) => {
 		try{
-			Logger.info(`[${username}] Attempting to cancel offer ${offer.id}`);
+			Logger.info(`[${username}] Attempting to cancel offer ${offerId}`);
 
+			const offer = createdOffers[offerId];
 			// cancel the offer
 			offer.cancel((err, result) => {
 				if(err){
@@ -246,6 +249,8 @@ module.exports = ({
 			if(status === 'pending'){
 				_mobileConfirmOffer(offer.id);
 			}
+
+			createdOffers[offer.id] = offer;
 
 			return offer;
 		} catch(err){
@@ -468,6 +473,8 @@ module.exports = ({
 		cancelOffer,
 
 		login,
-		reLogin
+		reLogin,
+
+		sendOffer
 	};
 };

@@ -218,10 +218,62 @@ const pauseSniping = async (webhookURL, balance) => {
 	}
 };
 
+/**
+ * If we sold an item
+ * @param {String} webhookURL - The URL of the Discord webhook
+ * @param {Object} data - The data of the sold item
+ * @param {String} data.id - The ID of the Clash.gg listing
+ * @param {Object} data.item - The item data
+ * @param {String} data.item.name - The name of the item
+ * @param {Number} data.item.price - The price of the item
+ */
+const soldItem = async (webhookURL, data) => {
+	try{
+		const response = await axios({
+			method: 'POST',
+			url: webhookURL,
+			data: {
+				content: null,
+				embeds: [{
+					title: 'Sold Item',
+					color: 5814783,
+					fields: [
+						{
+							name: 'Listing ID',
+							value: data?.id
+						},
+						{
+							name: 'Item Name',
+							value: data?.item?.name
+						},
+						{
+							name: 'Price (USD)',
+							value: `$${((data?.item?.askPrice * CONFIG.CLASH_COIN_CONVERSION) / 100).toFixed(2)}`
+						},
+						{
+							name: 'Price (Coins)',
+							value: `$${(data?.item?.askPrice / 100).toFixed(2)}`
+						}
+					]
+				}],
+				username: WEBHOOK_USERNAME,
+				avatar_url: WEBHOOK_AVATAR_URL,
+				attachments: []
+			}
+		});
+
+		return Logger.info(`[DISCORD] Successfully sent the sold item webhook. Status: ${response.status}`);
+	} catch(err){
+		const errMessage = err?.response?.data?.message || err.message || err;
+		Logger.error(`[DISCORD] An error occurred while sending the sold item webhook: ${errMessage}`);
+	}
+};
+
 module.exports = {
 	scriptStarted,
 	itemPurchased,
 	listingCanceled,
 	tradeOfferAccepted,
-	pauseSniping
+	pauseSniping,
+	soldItem
 };

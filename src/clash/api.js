@@ -106,7 +106,10 @@ const buyListing = async (listingId) => {
 		});
 
 		if(!response?.data?.success){
-			Logger.error(`[API] An error occurred while buying the listing (${listingId}): ${response?.data?.message || 'No message was found'}`);
+			Logger.error(`[API] An error occurred while buying the listing (${listingId}): ${response?.data?.message}`);
+			if(!response?.data?.message){
+				console.log(response?.data);
+			}
 
 			return false;
 		}
@@ -159,7 +162,10 @@ const deleteListing = async (listingId) => {
 		});
 
 		if(!response?.data?.success){
-			Logger.error(`[API] An error occurred while deleting the listing (${listingId}): ${response?.data?.message || 'No message was found'}`);
+			Logger.error(`[API] An error occurred while deleting the listing (${listingId}): ${response?.data?.message}`);
+			if(!response?.data?.message){
+				console.log(response?.data);
+			}
 		}
 
 		Logger.info(`[API] Successfully deleted the listing (${listingId})!`);
@@ -192,9 +198,12 @@ const createListing = async (externalId, price) => {
 			}
 		});
 
-		const success = response?.data?.status === 'OPEN';
+		const success = response?.data[0]?.status === 'OPEN';
 		if(!success){
-			Logger.error(`[API] An error occurred while creating the listing (${externalId}): ${response?.data?.message || 'No message was found'}`);
+			Logger.error(`[API] An error occurred while creating the listing (${externalId}): ${response?.data?.message}`);
+			if(!response?.data?.message){
+				console.log(response?.data);
+			}
 		}
 
 		return response?.data;
@@ -218,8 +227,12 @@ const answerListing = async (listingId) => {
 			url: `/steam-p2p/listings/${listingId}/answer`
 		});
 
-		if(!response?.data?.success){
-			Logger.error(`[API] An error occurred while answering the listing (${listingId}): ${response?.data?.message || 'No message was found'}`);
+		const success = response?.data?.listing?.status === 'ANSWERED';
+		if(!success){
+			Logger.error(`[API] An error occurred while answering the listing (${listingId}): ${response?.data?.message}`);
+			if(!response?.data?.message){
+				console.log(response?.data);
+			}
 
 			return false;
 		}

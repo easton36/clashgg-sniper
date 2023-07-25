@@ -1,2 +1,4 @@
 .env
 node_modules/
+logs/purchased_items.json
+logs/sold_items.json

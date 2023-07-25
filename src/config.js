@@ -34,6 +34,7 @@ module.exports = {
 	STRINGS_TO_IGNORE: JSON.parse(process.env.STRINGS_TO_IGNORE),
 
 	ENABLE_BULK_SELL: process.env.ENABLE_BULK_SELL === 'true',
+	ENABLE_BULK_SELL_RELIST: process.env.ENABLE_BULK_SELL_RELIST === 'true',
 	INVENTORY_SELL_MARKUP_PERCENT: Number(process.env.INVENTORY_SELL_MARKUP_PERCENT),
 
 	ENABLE_STEAM_LOGIN: process.env.ENABLE_STEAM_LOGIN === 'true',

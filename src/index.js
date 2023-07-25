@@ -16,10 +16,11 @@ const {
 	getActiveListings,
 	answerListing
 } = require('./clash/api');
-const { itemPurchased, scriptStarted, listingCanceled, pauseSniping, tradeOfferAccepted } = require('./discord/webhook');
+const { itemPurchased, scriptStarted, listingCanceled, pauseSniping, tradeOfferAccepted, soldItem } = require('./discord/webhook');
 const { fetchAndInsertPricingData, fetchItemPrice } = require('./pricempire/prices');
 const { checkDopplerPhase } = require('./pricempire/doppler');
-const { formatListing } = require('./clash/helpers');
+const { formatListing, formatListingForLogFile } = require('./clash/helpers');
+const { createSoldItemLogFile, createPurchasedItemLogFile } = require('./utils/logfiles.util');
 
 // Print all config settings in a nice column format
 const startupMessage = () => {
@@ -58,6 +59,9 @@ const Manager = () => {
 
 	const listingsToWatch = {};
 	const purchasedListings = {};
+
+	const soldLogs = {};
+	const purchaseLogs = {};
 
 	/**
 	 * Sends a message to the console every hour to let us know the script is still running
@@ -125,6 +129,14 @@ const Manager = () => {
 			}
 			// List all items in inventory on Clash
 			await listAllItems();
+		}
+
+		if(CONFIG.ENABLE_BULK_SELL_RELIST){
+			// every hour, check if we have any listings that have been removed
+			setInterval(async () => {
+				// List all items in inventory on Clash
+				await listAllItems();
+			}, 1000 * 60 * 60); // 1 hour
 		}
 	};
 
@@ -199,7 +211,7 @@ const Manager = () => {
 		});
 		// list all items in filteredInventory
 		for(const item of filteredInventory){
-			const askPrice = item?.price * CONFIG.INVENTORY_SELL_MARKUP_PERCENT;
+			const askPrice = Math.round(item?.price * CONFIG.INVENTORY_SELL_MARKUP_PERCENT);
 			// create listing
 			const listing = await createListing(item.externalId, askPrice);
 			if(!listing) return;
@@ -241,24 +253,30 @@ const Manager = () => {
 	/**
 	 * Create a timeout to cancel a sent trade
 	 * @param {String} listingId - The ID of the listing
-	 * @param {Object} offer - The offer object
+	 * @param {String} offerId - The offer id
 	 * @param {Date} expiresAt - The date the offer expires at
 	 */
-	const createSentTradeCancelTimeout = (listingId, offer, expiresAt) => {
+	const createSentTradeCancelTimeout = (listingId, offerId, expiresAt) => {
 		// expires at - 30 seconds
-		const timeUntilExpiration = expiresAt - new Date() - (1000 * 30);
+		const timeUntilExpiration = new Date(expiresAt) - new Date() - (1000 * 30);
 		const timeout = setTimeout(async () => {
-			Logger.info(`[TIMEOUT] Cancelling sent trade for listing ID: ${listingId}, offer ID: ${offer.id}`);
+			try{
+				Logger.info(`[TIMEOUT] Cancelling sent trade for listing ID: ${listingId}, offer ID: ${offerId}`);
 
-			// cancel trade with offer id
-			const canceled = await steamAccount.cancelOffer(offer);
-			if(!canceled) return;
+				// cancel trade with offer id
+				const canceled = await steamAccount.cancelOffer(offerId);
+				if(!canceled) return;
 
-			Logger.info(`[TIMEOUT] Successfully cancelled sent trade for listing ID: ${listingId}, offer ID: ${offer.id}`);
+				Logger.info(`[TIMEOUT] Successfully cancelled sent trade for listing ID: ${listingId}, offer ID: ${offerId}`);
 
-			// delete timeout
-			delete sentTradeCancelTimeouts[listingId];
+				// delete timeout
+				delete sentTradeCancelTimeouts[listingId];
+			} catch(err){
+				Logger.error(`[TIMEOUT] An error occurred while cancelling sent trade for listing ID: ${listingId}, offer ID: ${offerId}: ${err.message || err}`);
+			}
 		}, timeUntilExpiration);
+
+		Logger.info(`[TIMEOUT] Created timeout to cancel sent trade for listing ID: ${listingId}, offer ID: ${offerId}, expires in ${timeUntilExpiration / 1000} seconds`);
 
 		sentTradeCancelTimeouts[listingId] = timeout;
 	};
@@ -420,7 +438,15 @@ const Manager = () => {
 		});
 		// create timeout to cancel trade
 		if(offer){
-			createSentTradeCancelTimeout(data.id, offer, data?.stepExpiresAt);
+			createSentTradeCancelTimeout(data.id, offer.id, data?.stepExpiresAt);
+
+			const logData = await formatListingForLogFile(data, 'sell');
+			if(logData){
+				soldLogs[data.id] = {
+					...logData,
+					soldAt: new Date().toISOString()
+				};
+			}
 		} else{ // if we couldn't send the offer, cancel the listing
 			Logger.error(`[WEBSOCKET] We were ASKED to sell a p2p listing, but we could not send the trade. DELETING LISTING... ${formatListing(data)}`);
 
@@ -433,7 +459,7 @@ const Manager = () => {
 	 * @param {Object} data - The data of the p2p listing
 	 * @returns {String} The status of the p2p listing
 	 */
-	const _listingUpdated = (data) => {
+	const _listingUpdated = async (data) => {
 		const listingStatus = data?.status;
 
 		const sellerSteamId = data?.seller?.steamId;
@@ -442,9 +468,9 @@ const Manager = () => {
 		case 'ASKED': {
 			if(sellerSteamId === steamId){
 				return _processSellOrderAsked(data);
-			} else{
-				Logger.info(`[WEBSOCKET] We ASKED to purchase a p2p listing. ${formatListing(data)}`);
 			}
+
+			Logger.info(`[WEBSOCKET] We ASKED to purchase a p2p listing. ${formatListing(data)}`);
 			break;
 		}
 		case 'CANCELED-SYSTEM': {
@@ -460,10 +486,17 @@ const Manager = () => {
 		case 'ANSWERED': {
 			if(sellerSteamId === steamId){
 				return _processSellOrderAnswered(data);
-			} else{
-				Logger.info(`[WEBSOCKET] We ASKED to purchase a p2p listing. ${formatListing(data)}`);
 			}
+
 			Logger.info(`[WEBSOCKET] A p2p listing we asked to purchase was ACCEPTED by the seller. ${formatListing(data)}`);
+			const logData = await formatListingForLogFile(data, 'buy');
+			if(logData){
+				purchaseLogs[data.id] = {
+					...logData,
+					purchasedAt: new Date().toISOString()
+				};
+			}
+
 			break;
 		}
 		// seller has sent the steam trade
@@ -483,8 +516,28 @@ const Manager = () => {
 				modifyBalance(data.item.askPrice);
 				// delete listing
 				delete ourListings[data.id];
+				// send discord webhook
+				if(CONFIG.DISCORD_WEBHOOK_URL){
+					soldItem(CONFIG.DISCORD_WEBHOOK_URL, data);
+				}
+
+				if(soldLogs[data.id]){
+					soldLogs[data.id].receivedAt = new Date().toISOString();
+					// create sold item log file
+					await createSoldItemLogFile(soldLogs[data.id]);
+					// delete sold log
+					delete soldLogs[data.id];
+				}
 			} else{
 				Logger.info(`[WEBSOCKET] A p2p listing we asked to purchase was RECEIVED by us. ${formatListing(data)}`);
+
+				if(purchaseLogs[data.id]){
+					purchaseLogs[data.id].receivedAt = new Date().toISOString();
+					// create purchased item log file
+					await createPurchasedItemLogFile(purchaseLogs[data.id]);
+					// delete purchased log
+					delete purchaseLogs[data.id];
+				}
 			}
 			break;
 
