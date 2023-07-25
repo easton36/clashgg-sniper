@@ -214,7 +214,12 @@ const Manager = () => {
 		Logger.info('Listing all items in inventory on Clash...');
 
 		const inventory = await getSteamInventory();
-		if(!inventory) return Logger.error('No inventory was found');
+		if(!inventory){
+			Logger.warn('No inventory was found. Retrying in 30 seconds...');
+
+			return setTimeout(listAllItems, 1000 * 30);
+		}
+
 		Logger.info(`Fetched inventory with ${inventory.length || 0} items`);
 		// filter inventory for items that have not been listed
 		const filteredInventory = inventory.filter(item => {
