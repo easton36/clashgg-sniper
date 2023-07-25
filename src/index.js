@@ -21,6 +21,7 @@ const { fetchAndInsertPricingData, fetchItemPrice } = require('./pricempire/pric
 const { checkDopplerPhase } = require('./pricempire/doppler');
 const { formatListing, formatListingForLogFile } = require('./clash/helpers');
 const { createSoldItemLogFile, createPurchasedItemLogFile } = require('./utils/logfiles.util');
+const { getCfClearance } = require('./clash/cloudflare_solver');
 
 const MAX_ACTIVE_TRADES = 5;
 
@@ -99,7 +100,11 @@ const Manager = () => {
 			}
 		}
 
-		const generated = await generateAccessToken();
+		// fetch cf_clearance cookie
+		const cfClearance = await getCfClearance(CONFIG.REFRESH_TOKEN);
+		if(!cfClearance) return;
+
+		const generated = await generateAccessToken(cfClearance);
 		if(!generated) return;
 		await fetchProfile();
 
@@ -118,7 +123,7 @@ const Manager = () => {
 		// Initializing the Clash.gg Websocket manager
 		websocket = ClashWebsocket({
 			accessToken,
-			cfClearance: CONFIG.CF_CLEARANCE
+			cfClearance// : CONFIG.CF_CLEARANCE
 		}, _websocketCallback);
 
 		// Sending the script started webhook
@@ -148,9 +153,11 @@ const Manager = () => {
 
 	/**
 	 * Generates a new access token
+	 * @param {String} cfClearance - The cf_clearance cookie
+	 * @returns {String} The access token
 	 */
-	const generateAccessToken = async () => {
-		accessToken = await getAccessToken(CONFIG.REFRESH_TOKEN, CONFIG.CF_CLEARANCE);
+	const generateAccessToken = async (cfClearance) => {
+		accessToken = await getAccessToken(CONFIG.REFRESH_TOKEN, cfClearance); // CONFIG.CF_CLEARANCE);
 		if(!accessToken){
 			Logger.error('No access token was found. This could be an issue with your refresh token cookie, or more likely, your cf_clearance cookie. cf_clearance expires often.');
 
@@ -355,7 +362,7 @@ const Manager = () => {
 				CONFIG.ITEMS_TO_IGNORE.includes(item?.name) || markupPercentage > CONFIG.MAX_MARKUP_PERCENT || containsStringToIgnore ||
 				(CONFIG.CHECK_BUFF_PRICE && dopplerPhase) // if item has a doppler phase, we should also check buff price... could be a good deal!
 			){
-				Logger.info(`[WEBSOCKET] Received new p2p listing, but it was ignored. ${formatListing(data, 'ignored')}`);
+				Logger.info(`[WEBSOCKET] Received new p2p listing, but it was ignored due to CONFIG. ${formatListing(data, 'ignored')}`);
 
 				return false;
 			}
@@ -374,7 +381,7 @@ const Manager = () => {
 
 				// check if buff percentage is greater than max buff percentage
 				if(buffPercentage > CONFIG.MAX_BUFF_PERCENT){
-					Logger.info(`[WEBSOCKET] Received new p2p listing, but it was ignored. ${formatListing(data, 'buff', extraData)}`);
+					Logger.info(`[WEBSOCKET] Received new p2p listing, but it was ignored due to BUFF. ${formatListing(data, 'buff', extraData)}`);
 
 					return false;
 				}
