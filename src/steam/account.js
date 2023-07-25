@@ -223,7 +223,7 @@ module.exports = ({
 	 * @param {String} item.assetid - The assetid of the item
 	 * @param {String} item.name - The name of the item
 	 * @param {String} message - OPTIONAL, The message to send with the offer
-	 * @returns {Promise<TradeOffer>} The trade offer
+	 * @returns {Promise<String>} The offer ID
 	 * @throws {Error} If the offer cannot be sent
 	 */
 	const sendOffer = async (tradelink, item, message) => {
@@ -247,12 +247,12 @@ module.exports = ({
 			Logger.info(`[${username}] Sent offer ${offer.id} to ${tradelink} with status ${status}. ${itemString}`);
 
 			if(status === 'pending'){
-				_mobileConfirmOffer(offer.id);
+				await _mobileConfirmOffer(offer.id);
 			}
 
 			createdOffers[offer.id] = offer;
 
-			return offer;
+			return offer.id;
 		} catch(err){
 			Logger.error(`[${username}] Failed to send offer to ${tradelink}. ${itemString}: ${err.message || err}`);
 

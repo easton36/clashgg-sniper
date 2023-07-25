@@ -167,6 +167,11 @@ const imagePhaseDictionary = {
  * @returns {String} The phase of the skin
  */
 const checkDopplerPhase = (imageUrl) => {
+	const imageHashParts = imageUrl.split('/');
+	const imageHash = imageHashParts.find((part) => part.startsWith('-9a81'));
+
+	if(!imageHash) return null;
+
 	return imagePhaseDictionary[imageUrl] || null;
 };
 

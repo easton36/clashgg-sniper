@@ -33,7 +33,7 @@ const formatListing = (data, status, extraData) => {
  * @param {Object} data - The listing to format
  * @param {String} type - The type of listing (buy or sell)
  */
-const formatListingForLogFile = async (data, type) => {
+const formatListingForLogFile = async (data, type, offerId) => {
 	const [appid, contextid, assetid] = data?.item?.externalId?.split('|');
 
 	const log = {
@@ -65,6 +65,10 @@ const formatListingForLogFile = async (data, type) => {
 			name: data?.buyer?.name, // the name of the buyer
 			tradelink: data?.buyerTradelink // the tradelink of the buyer
 		};
+	}
+
+	if(offerId){
+		log.offerId = offerId;
 	}
 
 	const dopplerPhase = checkDopplerPhase(data?.item?.imageUrl);

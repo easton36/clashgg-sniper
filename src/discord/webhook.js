@@ -236,7 +236,7 @@ const soldItem = async (webhookURL, data) => {
 				content: null,
 				embeds: [{
 					title: 'Sold Item',
-					color: 5814783,
+					color: 1376000,
 					fields: [
 						{
 							name: 'Listing ID',

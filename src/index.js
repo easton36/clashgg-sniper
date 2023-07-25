@@ -211,6 +211,12 @@ const Manager = () => {
 		});
 		// list all items in filteredInventory
 		for(const item of filteredInventory){
+			const dopplerPhase = checkDopplerPhase(item.imageUrl);
+			if(dopplerPhase){
+				Logger.warn(`Item ${item.name} is a DOPPLER. Clash.gg does not price dopplers correctly. Skipping...`);
+				continue;
+			}
+
 			const askPrice = Math.round(item?.price * CONFIG.INVENTORY_SELL_MARKUP_PERCENT);
 			// create listing
 			const listing = await createListing(item.externalId, askPrice);
@@ -430,17 +436,17 @@ const Manager = () => {
 		const buyerTradelink = data?.buyerTradelink;
 		const [appid, contextid, assetid] = data?.item?.externalId.split('|');
 		// send trade
-		const offer = steamAccount.sendOffer(buyerTradelink, {
+		const offerId = steamAccount.sendOffer(buyerTradelink, {
 			appid,
 			contextid,
 			assetid,
 			name: data?.item?.name
 		});
 		// create timeout to cancel trade
-		if(offer){
-			createSentTradeCancelTimeout(data.id, offer.id, data?.stepExpiresAt);
+		if(offerId){
+			createSentTradeCancelTimeout(data.id, offerId, data?.stepExpiresAt);
 
-			const logData = await formatListingForLogFile(data, 'sell');
+			const logData = await formatListingForLogFile(data, 'sell', offerId);
 			if(logData){
 				soldLogs[data.id] = {
 					...logData,
