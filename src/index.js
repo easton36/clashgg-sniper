@@ -22,6 +22,8 @@ const { checkDopplerPhase } = require('./pricempire/doppler');
 const { formatListing, formatListingForLogFile } = require('./clash/helpers');
 const { createSoldItemLogFile, createPurchasedItemLogFile } = require('./utils/logfiles.util');
 
+const MAX_ACTIVE_TRADES = 5;
+
 // Print all config settings in a nice column format
 const startupMessage = () => {
 	const configKeys = Object.keys(CONFIG);
@@ -62,6 +64,10 @@ const Manager = () => {
 
 	const soldLogs = {};
 	const purchaseLogs = {};
+
+	let activeTrades = 0;
+	let processingQueue = false;
+	const activeTradesQueue = [];
 
 	/**
 	 * Sends a message to the console every hour to let us know the script is still running
@@ -425,18 +431,20 @@ const Manager = () => {
 	};
 
 	/**
-	 * Send a trade offer to the seller
-	 * @param {Object} data - The data of the p2p listing
+	 * Queue worker for sending listings we've sold
+	 * @returns {void}
 	 */
-	const _processSellOrderAnswered = async (data) => {
-		Logger.info(`[WEBSOCKET] We ANSWERED to sell a p2p listing. ${formatListing(data)}`);
-		// update listing
-		ourListings[data.id] = data;
+	const _processNextTrade = async () => {
+		const data = activeTradesQueue.shift();
+
+		Logger.info(`[QUEUE] Processing trade for listing ID: ${data.id}`);
+
 		// get info needed to send trade
 		const buyerTradelink = data?.buyerTradelink;
 		const [appid, contextid, assetid] = data?.item?.externalId.split('|');
+
 		// send trade
-		const offerId = steamAccount.sendOffer(buyerTradelink, {
+		const offerId = await steamAccount.sendOffer(buyerTradelink, {
 			appid,
 			contextid,
 			assetid,
@@ -453,11 +461,49 @@ const Manager = () => {
 					soldAt: new Date().toISOString()
 				};
 			}
+
+			activeTrades++;
 		} else{ // if we couldn't send the offer, cancel the listing
 			Logger.error(`[WEBSOCKET] We were ASKED to sell a p2p listing, but we could not send the trade. DELETING LISTING... ${formatListing(data)}`);
 
 			await deleteListing(data.id);
 		}
+	};
+
+	/**
+	 * Continuously process the trade queue until empty
+	 * @returns {void}
+	 */
+	const _processTradeQueue = async () => {
+		// If we're already processing the queue or there are too many active trades, exit
+		if(processingQueue || activeTrades >= MAX_ACTIVE_TRADES) return;
+
+		// If there are no trades left to process, exit
+		if(activeTradesQueue.length === 0){
+			return processingQueue = false;
+		}
+
+		processingQueue = true;
+		await _processNextTrade();
+		processingQueue = false;
+
+		_processTradeQueue();
+	};
+
+	/**
+	 * Send a trade offer to the seller
+	 * @param {Object} data - The data of the p2p listing
+	 */
+	const _processSellOrderAnswered = async (data) => {
+		Logger.info(`[WEBSOCKET] We ANSWERED to sell a p2p listing. ${formatListing(data)}`);
+		// update listing
+		ourListings[data.id] = data;
+
+		// Add the offer data to the queue
+		activeTradesQueue.push(data);
+
+		// Start processing the queue
+		_processTradeQueue();
 	};
 
 	/**
@@ -509,6 +555,8 @@ const Manager = () => {
 		case 'SENT':
 			if(sellerSteamId === steamId){
 				Logger.info(`[WEBSOCKET] We SENT a p2p listing we sold. ${formatListing(data)}`);
+
+				activeTrades++;
 			} else{
 				Logger.info(`[WEBSOCKET] A p2p listing we asked to purchase was SENT by the seller. ${formatListing(data)}`);
 			}
@@ -522,10 +570,19 @@ const Manager = () => {
 				modifyBalance(data.item.askPrice);
 				// delete listing
 				delete ourListings[data.id];
+				// delete timeout
+				if(sentTradeCancelTimeouts[data.id]){
+					clearTimeout(sentTradeCancelTimeouts[data.id]);
+					delete sentTradeCancelTimeouts[data.id];
+				}
 				// send discord webhook
 				if(CONFIG.DISCORD_WEBHOOK_URL){
 					soldItem(CONFIG.DISCORD_WEBHOOK_URL, data);
 				}
+
+				activeTrades--;
+				// process next trade
+				_processTradeQueue();
 
 				if(soldLogs[data.id]){
 					soldLogs[data.id].receivedAt = new Date().toISOString();
