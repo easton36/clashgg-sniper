@@ -100,12 +100,9 @@ const Manager = () => {
 			}
 		}
 
-		// fetch cf_clearance cookie
-		const cfClearance = await getCfClearance(CONFIG.REFRESH_TOKEN);
-		if(!cfClearance) return;
+		const generated = await generateAccessToken();
+		if(!generated) return process.exit(1);
 
-		const generated = await generateAccessToken(cfClearance);
-		if(!generated) return;
 		await fetchProfile();
 
 		// Initializing the Steam account
@@ -119,12 +116,6 @@ const Manager = () => {
 
 			await steamAccount.login();
 		}
-
-		// Initializing the Clash.gg Websocket manager
-		websocket = ClashWebsocket({
-			accessToken,
-			cfClearance// : CONFIG.CF_CLEARANCE
-		}, _websocketCallback);
 
 		// Sending the script started webhook
 		if(CONFIG.DISCORD_WEBHOOK_URL){
@@ -153,10 +144,13 @@ const Manager = () => {
 
 	/**
 	 * Generates a new access token
-	 * @param {String} cfClearance - The cf_clearance cookie
 	 * @returns {String} The access token
 	 */
-	const generateAccessToken = async (cfClearance) => {
+	const generateAccessToken = async () => {
+		// fetch cf_clearance cookie
+		const cfClearance = await getCfClearance(CONFIG.REFRESH_TOKEN);
+		if(!cfClearance) return;
+
 		accessToken = await getAccessToken(CONFIG.REFRESH_TOKEN, cfClearance); // CONFIG.CF_CLEARANCE);
 		if(!accessToken){
 			Logger.error('No access token was found. This could be an issue with your refresh token cookie, or more likely, your cf_clearance cookie. cf_clearance expires often.');
@@ -177,6 +171,12 @@ const Manager = () => {
 		if(websocket){
 			// update websocket access token
 			websocket.updateAccessToken(accessToken);
+		} else{
+			// Initializing the Clash.gg Websocket manager
+			websocket = ClashWebsocket({
+				accessToken,
+				cfClearance// : CONFIG.CF_CLEARANCE
+			}, _websocketCallback);
 		}
 
 		return accessToken;

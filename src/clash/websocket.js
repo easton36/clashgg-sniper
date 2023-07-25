@@ -72,8 +72,9 @@ const ClashWebsocket = ({
 	/**
 	 * Update the access token
 	 * @param {String} newAccessToken - The new access token
+	 * @param {String} newCfClearance - The new cf_clearance cookie
 	 */
-	const updateAccessToken = (newAccessToken) => {
+	const updateAccessToken = (newAccessToken, newCfClearance) => {
 		// if an update is already in progress, return
 		if(updateInProgress) return;
 		Logger.info('[WEBSOCKET] Updating the access token...');
@@ -81,6 +82,7 @@ const ClashWebsocket = ({
 		updateInProgress = true;
 		// update the access token
 		accessToken = newAccessToken;
+		cfClearance = newCfClearance;
 
 		// close the WebSocket connection
 		close();

@@ -21,6 +21,7 @@ It will also automatically sell items in bulk at a markup percentage that you sp
 	- Logs are stored in `logs/` directory
  - Automatic price updating
 	- Automatically update prices of items in the database with pricempire.com
+ - Automatically scrape cf_clearance cookie from Clash.gg!!!
 
 ### Requirements
  - Node.js v12 or higher
@@ -31,7 +32,6 @@ It will also automatically sell items in bulk at a markup percentage that you sp
  - Clone this repository
  - Rename `.env.example` to `.env`
  - Fill your Clash.gg `refresh_token` cookie into `.env` as `REFRESH_TOKEN`
- - Fill your Clash.gg `cf_clearance` cookie into `.env` as `CF_CLEARANCE`
  - Fill rest of `.env` as you wish, it is pretty self explanatory and commented well
  - Run `npm install` to install dependencies
 
