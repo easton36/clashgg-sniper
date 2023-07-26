@@ -226,8 +226,9 @@ const pauseSniping = async (webhookURL, balance) => {
  * @param {Object} data.item - The item data
  * @param {String} data.item.name - The name of the item
  * @param {Number} data.item.price - The price of the item
+ * @param
  */
-const soldItem = async (webhookURL, data) => {
+const soldItem = async (webhookURL, data, accountBalance) => {
 	try{
 		const response = await axios({
 			method: 'POST',
@@ -253,6 +254,10 @@ const soldItem = async (webhookURL, data) => {
 						{
 							name: 'Price (Coins)',
 							value: `$${(data?.item?.askPrice / 100).toFixed(2)}`
+						},
+						{
+							name: 'New Balance (Coins)',
+							value: `$${(accountBalance / 100).toFixed(2)}`
 						}
 					]
 				}],

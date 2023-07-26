@@ -149,7 +149,6 @@ const Manager = () => {
 	const generateAccessToken = async () => {
 		// fetch cf_clearance cookie
 		const cfClearance = await getCfClearance(CONFIG.REFRESH_TOKEN);
-		if(!cfClearance) return;
 
 		accessToken = await getAccessToken(CONFIG.REFRESH_TOKEN, cfClearance); // CONFIG.CF_CLEARANCE);
 		if(!accessToken){
@@ -170,7 +169,7 @@ const Manager = () => {
 
 		if(websocket){
 			// update websocket access token
-			websocket.updateAccessToken(accessToken);
+			websocket.updateAccessToken(accessToken, cfClearance);
 		} else{
 			// Initializing the Clash.gg Websocket manager
 			websocket = ClashWebsocket({
@@ -211,39 +210,48 @@ const Manager = () => {
 	 * List all items in inventory on Clash
 	 */
 	const listAllItems = async () => {
-		Logger.info('Listing all items in inventory on Clash...');
+		try{
+			Logger.info('Listing all items in inventory on Clash...');
 
-		const inventory = await getSteamInventory();
-		if(!inventory){
-			Logger.warn('No inventory was found. Retrying in 30 seconds...');
+			const inventory = await getSteamInventory();
+			if(!inventory){
+				Logger.warn('No inventory was found. Retrying in 30 seconds...');
 
-			return setTimeout(listAllItems, 1000 * 30);
-		}
-
-		Logger.info(`Fetched inventory with ${inventory.length || 0} items`);
-		// filter inventory for items that have not been listed
-		const filteredInventory = inventory.filter(item => {
-			const alreadyListed = listedItems.includes(item.externalId);
-
-			return !alreadyListed && item.isAccepted && item.isTradable;
-		});
-		// list all items in filteredInventory
-		for(const item of filteredInventory){
-			const dopplerPhase = checkDopplerPhase(item.imageUrl);
-			if(dopplerPhase){
-				Logger.warn(`Item ${item.name} is a DOPPLER. Clash.gg does not price dopplers correctly. Skipping...`);
-				continue;
+				return setTimeout(listAllItems, 1000 * 30);
 			}
 
-			const askPrice = Math.round(item?.price * CONFIG.INVENTORY_SELL_MARKUP_PERCENT);
-			// create listing
-			const listing = await createListing(item.externalId, askPrice);
-			if(!listing) return;
+			Logger.info(`Fetched inventory with ${inventory.length || 0} items`);
+			// filter inventory for items that have not been listed
+			const filteredInventory = inventory.filter(item => {
+				const alreadyListed = listedItems.includes(item.externalId);
 
-			ourListings[listing.id] = listing;
-			listedItems.push(item.externalId);
+				return !alreadyListed && item.isAccepted && item.isTradable;
+			});
+			// list all items in filteredInventory
+			for(const item of filteredInventory){
+				const dopplerPhase = checkDopplerPhase(item.imageUrl);
+				if(dopplerPhase && !CONFIG.ENABLE_DOPPLER_SELL){
+					Logger.warn(`Item ${item.name} is a DOPPLER. Clash.gg does not price dopplers correctly. Skipping...`);
+					continue;
+				}
 
-			Logger.info(`Successfully listed item: ${item?.name} for $${askPrice / 100} coins!`);
+				const askPrice = Math.round(item?.price * CONFIG.INVENTORY_SELL_MARKUP_PERCENT);
+				// create listing
+				const listing = await createListing(item.externalId, askPrice);
+				if(!listing) return;
+
+				ourListings[listing.id] = listing;
+				listedItems.push(item.externalId);
+
+				Logger.info(`Successfully listed item: ${item?.name} for $${askPrice / 100} coins!`);
+			}
+		} catch(err){
+			if(err.message === 'Unauthorized'){
+				Logger.error('Unauthorized. Generating new access token...');
+				await generateAccessToken();
+
+				return listAllItems();
+			}
 		}
 	};
 
@@ -397,7 +405,11 @@ const Manager = () => {
 
 			// buy the listing
 			const purchased = await buyListing(data.id);
-			if(!purchased) return false;
+			if(!purchased){
+				Logger.error(`[WEBSOCKET] An error occurred while purchasing a new p2p listing. ${formatListing(data)}`);
+
+				return false;
+			}
 
 			// reduce account balance
 			modifyBalance(-data.item.askPrice);
@@ -564,7 +576,7 @@ const Manager = () => {
 			break;
 		}
 		// seller has sent the steam trade
-		case 'SENT':
+		case 'SENT': {
 			if(sellerSteamId === steamId){
 				Logger.info(`[WEBSOCKET] We SENT a p2p listing we sold. ${formatListing(data)}`);
 
@@ -573,9 +585,9 @@ const Manager = () => {
 				Logger.info(`[WEBSOCKET] A p2p listing we asked to purchase was SENT by the seller. ${formatListing(data)}`);
 			}
 			break;
-
+		}
 		// we accepted the steam trade
-		case 'RECEIVED':
+		case 'RECEIVED': {
 			if(sellerSteamId === steamId){
 				Logger.info(`[WEBSOCKET] The buyer RECEIVED a p2p listing we sold. ${formatListing(data)}`);
 				// update balance
@@ -586,10 +598,6 @@ const Manager = () => {
 				if(sentTradeCancelTimeouts[data.id]){
 					clearTimeout(sentTradeCancelTimeouts[data.id]);
 					delete sentTradeCancelTimeouts[data.id];
-				}
-				// send discord webhook
-				if(CONFIG.DISCORD_WEBHOOK_URL){
-					soldItem(CONFIG.DISCORD_WEBHOOK_URL, data);
 				}
 
 				activeTrades--;
@@ -603,6 +611,11 @@ const Manager = () => {
 					// delete sold log
 					delete soldLogs[data.id];
 				}
+
+				// send discord webhook
+				if(CONFIG.DISCORD_WEBHOOK_URL){
+					soldItem(CONFIG.DISCORD_WEBHOOK_URL, data, accountBalance);
+				}
 			} else{
 				Logger.info(`[WEBSOCKET] A p2p listing we asked to purchase was RECEIVED by us. ${formatListing(data)}`);
 
@@ -615,7 +628,15 @@ const Manager = () => {
 				}
 			}
 			break;
-
+		}
+		case 'FAILED': {
+			if(sellerSteamId === steamId){
+				Logger.error(`[WEBSOCKET] We FAILED to send a p2p listing we sold. ${formatListing(data)}`);
+			} else{
+				Logger.error(`[WEBSOCKET] A p2p listing we asked to purchase FAILED to send. ${formatListing(data)}`);
+			}
+			break;
+		}
 		default:
 			Logger.info(`[WEBSOCKET] Received unknown status ${listingStatus} for p2p listing. ${formatListing(data)}`);
 		}

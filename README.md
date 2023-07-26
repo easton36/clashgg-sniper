@@ -37,8 +37,13 @@ It will also automatically sell items in bulk at a markup percentage that you sp
 
 ### Usage
  - Run `npm start` to start the script
+ - Run `npm run logs` to view a live stream of the logs
+ - Run `npm run stop` to stop the script
+ - Run `npm run restart` to restart the script
+ - Run `npm run json2csv` to convert all of the JSON purchase and sell logs to CSV files! Output is in `output/` directory.
 
 ### Notes
+ - The script uses `pm2` to manage the process, so you can use `pm2` commands to manage the process as well.
  - You will need to restart the script every time you change the `.env` file.
 
 ### Screenshots

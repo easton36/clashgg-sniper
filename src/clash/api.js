@@ -70,6 +70,11 @@ const getProfile = async () => {
 		const errMessage = err?.response?.data?.message || err.message || err;
 		Logger.error(`[API] An error occurred while getting the profile: ${errMessage}`);
 
+		// if we are Unauthorized, we need to get a new access token
+		if(errMessage === 'Unauthorized'){
+			throw new Error('Unauthorized');
+		}
+
 		return false;
 	}
 };
@@ -88,6 +93,11 @@ const getActiveListings = async () => {
 	} catch(err){
 		const errMessage = err?.response?.data?.message || err.message || err;
 		Logger.error(`[API] An error occurred while getting the active listings: ${errMessage}`);
+
+		// if we are Unauthorized, we need to get a new access token
+		if(errMessage === 'Unauthorized'){
+			throw new Error('Unauthorized');
+		}
 
 		return false;
 	}
@@ -119,7 +129,7 @@ const buyListing = async (listingId) => {
 		return true;
 	} catch(err){
 		const errMessage = err?.response?.data?.message || err.message || err;
-		Logger.error(`[API] An error occurred while buying the listing (${listingId}): ${errMessage}${errMessage === 'resource_unavailable' ? ' (Someone else beat us to it)' : ''}`);
+		Logger.error(`[API] An error occurred while buying the listing (${listingId}): ${errMessage}${['resource_unavailable', 'item_no_longer_available'].includes(errMessage) ? ' (Someone else beat us to it)' : ''}`);
 
 		// if we are Unauthorized, we need to get a new access token
 		if(errMessage === 'Unauthorized'){
@@ -144,6 +154,11 @@ const getSteamInventory = async () => {
 	} catch(err){
 		const errMessage = err?.response?.data?.message || err.message || err;
 		Logger.error(`[API] An error occurred while getting the steam inventory: ${errMessage}`);
+
+		// if we are Unauthorized, we need to get a new access token
+		if(errMessage === 'Unauthorized'){
+			throw new Error('Unauthorized');
+		}
 
 		return false;
 	}
@@ -174,6 +189,11 @@ const deleteListing = async (listingId) => {
 	} catch(err){
 		const errMessage = err?.response?.data?.message || err.message || err;
 		Logger.error(`[API] An error occurred while deleting the listing (${listingId}): ${errMessage}`);
+
+		// if we are Unauthorized, we need to get a new access token
+		if(errMessage === 'Unauthorized'){
+			throw new Error('Unauthorized');
+		}
 
 		return false;
 	}
@@ -211,6 +231,11 @@ const createListing = async (externalId, price) => {
 		const errMessage = err?.response?.data?.message || err.message || err;
 		Logger.error(`[API] An error occurred while creating the listing (${externalId}): ${errMessage}`);
 
+		// if we are Unauthorized, we need to get a new access token
+		if(errMessage === 'Unauthorized'){
+			throw new Error('Unauthorized');
+		}
+
 		return false;
 	}
 };
@@ -243,6 +268,11 @@ const answerListing = async (listingId) => {
 	} catch(err){
 		const errMessage = err?.response?.data?.message || err.message || err;
 		Logger.error(`[API] An error occurred while answering the listing (${listingId}): ${errMessage}`);
+
+		// if we are Unauthorized, we need to get a new access token
+		if(errMessage === 'Unauthorized'){
+			throw new Error('Unauthorized');
+		}
 
 		return false;
 	}

@@ -75,21 +75,30 @@ const ClashWebsocket = ({
 	 * @param {String} newCfClearance - The new cf_clearance cookie
 	 */
 	const updateAccessToken = (newAccessToken, newCfClearance) => {
-		// if an update is already in progress, return
-		if(updateInProgress) return;
-		Logger.info('[WEBSOCKET] Updating the access token...');
+		try{
+			// if an update is already in progress, return
+			if(updateInProgress) return;
+			Logger.info('[WEBSOCKET] Updating the access token...');
 
-		updateInProgress = true;
-		// update the access token
-		accessToken = newAccessToken;
-		cfClearance = newCfClearance;
+			updateInProgress = true;
+			// update the access token
+			accessToken = newAccessToken;
+			cfClearance = newCfClearance;
 
-		// close the WebSocket connection
-		close();
+			// close the WebSocket connection
+			close();
 
-		// re-initialize the WebSocket connection
-		initialize();
-		updateInProgress = false;
+			// re-initialize the WebSocket connection
+			initialize();
+			updateInProgress = false;
+		} catch(err){
+			Logger.error(`[WEBSOCKET] An error occurred while updating the access token: ${err.message || err}`);
+
+			// if an error occurred, try again, but wait 5 seconds
+			setTimeout(() => {
+				updateAccessToken(newAccessToken, newCfClearance);
+			}, 5000);
+		}
 	};
 
 	/**
