@@ -259,7 +259,8 @@ const soldItem = async (webhookURL, data, accountBalance) => {
 							name: 'New Balance (Coins)',
 							value: `$${(accountBalance / 100).toFixed(2)}`
 						}
-					]
+					],
+					timestamp: new Date().toJSON()
 				}],
 				username: WEBHOOK_USERNAME,
 				avatar_url: WEBHOOK_AVATAR_URL,
