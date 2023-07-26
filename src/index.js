@@ -266,6 +266,10 @@ const Manager = () => {
 			Logger.error(`Account balance is currently ${accountBalance}, too low to snipe anything. Disabling sniping...`);
 
 			enableSniping = false;
+		} else if(accountBalance > CONFIG.MIN_PRICE && !enableSniping){
+			Logger.warn(`Account balance is currently ${accountBalance}, re-enabling sniping...`);
+
+			enableSniping = true;
 		}
 	};
 

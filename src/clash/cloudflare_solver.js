@@ -13,14 +13,14 @@ const Logger = require('../utils/logger.util');
  */
 const getCfClearance = async (refreshToken) => {
 	Logger.info('[CHROME] Fetching Cloudflare clearance cookie...');
-
+	let browser;
 	try{
 		puppeteer.use(stealth());
 		puppeteer.use(userPrefs({
 			userPrefs: {
 				devtools: {
 					preferences: {
-						currentDockState: '"right"'
+						currentDockState: '"bottom"'
 					}
 				}
 			}
@@ -29,7 +29,7 @@ const getCfClearance = async (refreshToken) => {
 		/**
 		 * I Found that opening devtools is the easiest way to instantly pass the cloudflare check... lmao
 		 */
-		const browser = await puppeteer.launch({
+		browser = await puppeteer.launch({
 			headless: 'new',
 			executablePath: executablePath(),
 			ignoreDefaultArgs: ['--enable-automation'],
@@ -42,7 +42,7 @@ const getCfClearance = async (refreshToken) => {
 				'--mute-audio',
 				'--no-zygote',
 				'--no-xshm',
-				'--window-size=1920,1080',
+				'--window-size=2560,1440',
 				'--no-first-run',
 				'--no-default-browser-check',
 				'--disable-dev-shm-usage',
@@ -67,44 +67,63 @@ const getCfClearance = async (refreshToken) => {
 			defaultViewport: null,
 			devtools: true
 		});
-		const page = await browser.newPage();
 
-		// set user agent
-		await page.setExtraHTTPHeaders({
-			'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36' // CONFIG.USER_AGENT
-		});
+		// use the first tab
+		const page = (await browser.pages())[0];
+		// create random new tab
+		const page2 = await browser.newPage();
 
 		// set cookies
-		await page.setCookie({
-			name: 'refresh_token',
-			value: refreshToken,
-			domain: 'clash.gg',
-			HttpOnly: true,
-			Secure: true
-		});
+		if(refreshToken){
+			await page.setCookie({
+				name: 'refresh_token',
+				value: refreshToken,
+				domain: 'clash.gg',
+				HttpOnly: true,
+				Secure: true
+			});
+		}
+
+		await page2.goto('https://clash.gg/');
+
+		// wait between 2 and 5 seconds
+		await new Promise(resolve => setTimeout(resolve, Math.floor(Math.random() * 3000) + 2000));
+
+		// focus on the first tab
+		await page.bringToFront();
 
 		await page.goto('https://clash.gg/');
 
-		// wait for the page to load. ID __next
-		await page.waitForSelector('#__next');
+		// close the second tab
+		await page2.close();
+
+		// wait for #__next to load
+		await page.waitForSelector('#__next', { timeout: 60000 });
+
+		// get body html
+		const clashLoadedElement = await page.$('#__next');
 
 		// Extract clearance cookie
 		const cookies = await page.cookies();
 		const clearanceCookie = cookies.find(cookie => cookie.name === 'cf_clearance');
-		if(!clearanceCookie){
-			Logger.error('[CHROME] Failed to retrieve the Cloudflare clearance cookie.');
 
-			return;
+		// if no clearanceCookie was found BUT clashLoadedElement was found, we are IP whitelisted
+		if(!clearanceCookie && clashLoadedElement){
+			Logger.warn('[CHROME] We are IP whitelisted on Clash.gg!');
+		} else if(!clearanceCookie){
+			Logger.error('[CHROME] Failed to retrieve the Cloudflare clearance cookie.');
+		} else{
+			Logger.info(`[CHROME] Fetched Cookie: cf_clearance=${clearanceCookie.value}`);
 		}
 
 		// Close the browser
 		await browser.close();
 
-		Logger.info(`[CHROME] Fetched Cookie: cf_clearance=${clearanceCookie.value}`);
-
-		return clearanceCookie.value;
+		return clearanceCookie?.value || false;
 	} catch(error){
 		Logger.error(`[CHROME] An error occurred while fetching the Cloudflare clearance cookie: ${error?.message || error}`);
+
+		await browser.close();
 
 		return false;
 	}

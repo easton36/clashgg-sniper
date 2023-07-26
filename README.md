@@ -21,7 +21,10 @@ It will also automatically sell items in bulk at a markup percentage that you sp
 	- Logs are stored in `logs/` directory
  - Automatic price updating
 	- Automatically update prices of items in the database with pricempire.com
- - Automatically scrape cf_clearance cookie from Clash.gg!!!
+ - Automatically scrape cf_clearance cookie from Clash.gg
+ - Automatically update access_token when it expires
+ - Balance tracking and smart purchasing
+ - Convert JSON logs to CSV files for easy accounting
 
 ### Requirements
  - Node.js v12 or higher

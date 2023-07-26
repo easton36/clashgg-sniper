@@ -1,13 +1,13 @@
 {
 	"name": "clashgg-sniper",
-	"version": "1.1.0",
+	"version": "1.1.2",
 	"description": "This is a simple script that will automatically purchase items from the Clash.gg store as soon as they become available, if the price is below a certain threshold.",
 	"main": "index.js",
 	"scripts": {
 		"start": "npx pm2 start",
 		"logs": "npx pm2 logs \"Clash.gg Bot\"",
 		"stop": "npx pm2 stop \"Clash.gg Bot\"",
-		"restart": "npx pm2 restart \"Clash.gg Bot\"",
+		"restart": "npx pm2 restart \"Clash.gg Bot\" --update-env",
 		"json2csv": "node src/tools/json2csv.js",
 		"start-node": "node src/index.js"
 	},
