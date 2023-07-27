@@ -559,6 +559,9 @@ const Manager = () => {
 				listingCanceled(CONFIG.DISCORD_WEBHOOK_URL, data);
 			}
 
+			// reduce account balance
+			modifyBalance(data.item.askPrice);
+
 			Logger.warn(`[WEBSOCKET] A p2p listing we asked to purchase was CANCELED by the system. ${formatListing(data)}`);
 			break;
 		}
