@@ -45,9 +45,45 @@ const scriptStarted = async (webhookURL) => {
  * Discord webhook that an item has been purchased
  * @param {String} webhookURL - The URL of the Discord webhook
  * @param {Object} data - The data of the p2p listing
+ * @param {String} extraData - Extra data to send
  */
-const itemPurchased = async (webhookURL, data) => {
+const itemPurchased = async (webhookURL, data, extraData) => {
 	try{
+		const fields = [
+			{
+				name: 'Listing ID',
+				value: data?.id
+			},
+			{
+				name: 'Name',
+				value: data?.item?.name
+			},
+			{
+				name: 'Price (USD)',
+				value: `$${((data?.item?.askPrice * CONFIG.CLASH_COIN_CONVERSION) / 100).toFixed(2)}`
+			},
+			{
+				name: 'Price (Coins)',
+				value: `$${(data?.item?.askPrice / 100).toFixed(2)}`
+			},
+			{
+				name: 'Item Markup',
+				value: `${((data?.item?.askPrice / data?.item?.price) - 1) * 100}%`
+			}
+		];
+
+		if(extraData?.buffPrice){
+			fields.push({
+				name: 'Buff Price (USD)',
+				value: `$${(extraData?.buffPrice / 100).toFixed(2)}`
+			});
+
+			fields.push({
+				name: 'Buff Percentage',
+				value: `${extraData?.buffPercentage * 100}%`
+			});
+		}
+
 		const response = await axios({
 			method: 'POST',
 			url: webhookURL,
@@ -56,28 +92,7 @@ const itemPurchased = async (webhookURL, data) => {
 				embeds: [{
 					title: 'Item Purchased',
 					color: 5814783,
-					fields: [
-						{
-							name: 'Listing ID',
-							value: data?.id
-						},
-						{
-							name: 'Name',
-							value: data?.item?.name
-						},
-						{
-							name: 'Price (USD)',
-							value: `$${((data?.item?.askPrice * CONFIG.CLASH_COIN_CONVERSION) / 100).toFixed(2)}`
-						},
-						{
-							name: 'Price (Coins)',
-							value: `$${(data?.item?.askPrice / 100).toFixed(2)}`
-						},
-						{
-							name: 'Item Markup',
-							value: `${data?.item?.askPrice / data?.item?.price}`
-						}
-					],
+					fields,
 					timestamp: new Date().toJSON()
 				}],
 				username: WEBHOOK_USERNAME,

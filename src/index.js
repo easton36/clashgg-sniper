@@ -420,7 +420,7 @@ const Manager = () => {
 
 			if(CONFIG.DISCORD_WEBHOOK_URL){
 				// send webhook
-				itemPurchased(CONFIG.DISCORD_WEBHOOK_URL, data);
+				itemPurchased(CONFIG.DISCORD_WEBHOOK_URL, data, extraData);
 			}
 
 			purchasedListings[data.id] = data;
