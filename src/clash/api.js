@@ -116,6 +116,21 @@ const getAccessToken = async (refreshToken, cfClearance) => {
 };
 
 /**
+ * Logs out of Clash.gg
+ * @returns {Promise<Object>} The response
+ */
+const logout = async () => {
+	const errorMessage = 'An error occurred while logging out';
+	try{
+		const response = await instance.get('/auth/logout');
+
+		return handleResponse(response, response?.data?.success, errorMessage);
+	} catch(err){
+		return handleError(err, errorMessage);
+	}
+};
+
+/**
  * Fetches Clash.gg profile
  * @returns {Promise<Object>} The profile
  * @throws {Error} The error which occurred
@@ -384,6 +399,20 @@ const getRecentCaseDrops = async () => {
 };
 
 /**
+ * Get case display order on Clash.gg
+ */
+const getCaseDisplayOrder = async () => {
+	const errorMessage = 'An error occurred while getting the case display order';
+	try{
+		const response = await instance.get('/cases/order');
+
+		return handleResponse(response, response?.data, errorMessage);
+	} catch(err){
+		return handleError(err, errorMessage);
+	}
+};
+
+/**
  * Gets clash.gg server hash
  * @returns {Promise<Object>} The server hash
  */
@@ -408,6 +437,27 @@ const getRainPot = async () => {
 		const response = await instance.get('/rain');
 
 		return handleResponse(response, response?.data?.pot, errorMessage);
+	} catch(err){
+		return handleError(err, errorMessage);
+	}
+};
+
+/**
+ * Tip the rain pot
+ * @param {Number} amount - The amount to tip (in cents)
+ */
+const tipRainPot = async (amount) => {
+	const errorMessage = `An error occurred while tipping the rain pot $${amount / 100}`;
+	try{
+		const response = await instance({
+			method: 'PATCH',
+			url: '/rain/tip',
+			data: {
+				amount
+			}
+		});
+
+		return handleResponse(response, response?.data?.success, errorMessage);
 	} catch(err){
 		return handleError(err, errorMessage);
 	}
@@ -483,6 +533,24 @@ const getAffiliateInfo = async () => {
 		const response = await instance.get('/affiliates');
 
 		return handleResponse(response, response?.data, errorMessage);
+	} catch(err){
+		return handleError(err, errorMessage);
+	}
+};
+
+/**
+ * Claims affiliate earnings
+ * @returns {Promise<Object>} The affiliate earnings
+ */
+const claimAffiliateEarnings = async () => {
+	const errorMessage = 'An error occurred while claiming the affiliate earnings';
+	try{
+		const response = await instance({
+			method: 'PUT',
+			url: '/affiliates/claim-earnings'
+		});
+
+		return handleResponse(response, response?.data?.claimedEarnings, errorMessage);
 	} catch(err){
 		return handleError(err, errorMessage);
 	}
@@ -623,6 +691,22 @@ const getBattleDetails = async (battleId) => {
 };
 
 /**
+ * Get old battle details
+ * @param {String} battleId - The ID of the battle to get details for
+ * @returns {Promise<Object>} The battle details
+ */
+const getOldBattleDetails = async (battleId) => {
+	const errorMessage = 'An error occurred while getting the old battle details';
+	try{
+		const response = await instance.get(`/battles/${battleId}/my-details`);
+
+		return handleResponse(response, response?.data?.id, errorMessage);
+	} catch(err){
+		return handleError(err, errorMessage);
+	}
+};
+
+/**
  * Get unclaimed upgrader items
  * @returns {Promise<Object[]>} The unclaimed upgrader items
  */
@@ -638,17 +722,35 @@ const getUnclaimedUpgraderItems = async () => {
 };
 
 /**
- * Tip the rain pot
- * @param {Number} amount - The amount to tip (in cents)
+ * Get jackpot information
+ * @returns {Promise<Object[]>} The jackpot information
  */
-const tipRainPot = async (amount) => {
-	const errorMessage = `An error occurred while tipping the rain pot $${amount / 100}`;
+const getJackpotInfo = async () => {
+	const errorMessage = 'An error occurred while getting the jackpot information';
+	try{
+		const response = await instance.get('/jackpot');
+
+		return handleResponse(response, response?.data?.length > 0, errorMessage);
+	} catch(err){
+		return handleError(err, errorMessage);
+	}
+};
+
+/**
+ * Places a jackpot bet
+ * @param {Number} amount - The amount to bet (in cents)
+ * @param {Number} gameId - The game ID to bet on
+ * @returns {Promise<Object>} The bet
+ */
+const placeJackpotBet = async (amount, gameId) => {
+	const errorMessage = `An error occurred while placing the jackpot bet $${amount / 100} on game ${gameId}`;
 	try{
 		const response = await instance({
-			method: 'PATCH',
-			url: '/rain/tip',
+			method: 'POST',
+			url: '/jackpot/bet',
 			data: {
-				amount
+				amount,
+				gameId
 			}
 		});
 
@@ -658,8 +760,138 @@ const tipRainPot = async (amount) => {
 	}
 };
 
+/**
+ * Gets current mines game
+ */
+const getMinesGame = async () => {
+	const errorMessage = 'An error occurred while getting the current mines game';
+	try{
+		const response = await instance.get('/mines/game');
+
+		return handleResponse(response, response?.data, errorMessage);
+	} catch(err){
+		return handleError(err, errorMessage);
+	}
+};
+
+/**
+ * Creates a mines game
+ * @param {Number} betAmount - The amount to bet (in cents)
+ * @param {Number} mineCount - The number of mines to use
+ * @param {String} clientSeed - The client seed to use
+ * @returns {Promise<Object>} The mines game
+ */
+const createMinesGame = async (betAmount, mineCount, clientSeed) => {
+	const errorMessage = `An error occurred while creating the mines game $${betAmount / 100} with ${mineCount} mines`;
+	try{
+		const response = await instance({
+			method: 'POST',
+			url: '/mines/game',
+			data: {
+				betAmount,
+				mineCount,
+				clientSeed
+			}
+		});
+
+		return handleResponse(response, response?.data?.gameId, errorMessage);
+	} catch(err){
+		return handleError(err, errorMessage);
+	}
+};
+
+/**
+ * Uncovers a mines tile
+ * @param {String} action - The action to perform. "reveal". "cashout" to cashout the game (rest of the params are ignored)
+ * @param {Number} gameId - The game ID to perform the action on
+ * @param {Number} x - The x coordinate of the tile to perform the action on
+ * @param {Number} y - The y coordinate of the tile to perform the action on
+ * @returns {Promise<Object>} The mines game
+ */
+const uncoverMinesTile = async (action, gameId, x, y) => {
+	const errorMessage = `An error occurred while uncovering the mines tile (${x}, ${y}) in game ${gameId}`;
+	try{
+		const response = await instance({
+			method: 'POST',
+			url: '/mines/game',
+			data: {
+				action,
+				gameId,
+				x,
+				y
+			}
+		});
+
+		return handleResponse(response, response?.data?.gameId, errorMessage);
+	} catch(err){
+		return handleError(err, errorMessage);
+	}
+};
+
+/**
+ * Get leaderboard information
+ * @returns {Promise<Object>} The leaderboard information
+ */
+const getLeaderboardInfo = async () => {
+	const errorMessage = 'An error occurred while getting the leaderboard information';
+	try{
+		const response = await instance.get('/leaderboard');
+
+		return handleResponse(response, response?.data, errorMessage);
+	} catch(err){
+		return handleError(err, errorMessage);
+	}
+};
+
+/**
+ * Get my leaderboard wager information
+ * @returns {Promise<Object>} The leaderboard wager information
+ */
+const getMyLeaderboardWagerInfo = async () => {
+	const errorMessage = 'An error occurred while getting the my leaderboard wager information';
+	try{
+		const response = await instance.get('/leaderboard/my-wagers');
+
+		return handleResponse(response, response?.data, errorMessage);
+	} catch(err){
+		return handleError(err, errorMessage);
+	}
+};
+
+/**
+ * Gets a KYC verification token
+ * @returns {Promise<Object>} The KYC verification token
+ */
+const getKycVerificationToken = async () => {
+	const errorMessage = 'An error occurred while getting the KYC verification token';
+	try{
+		const response = await instance.get('/kyc/verification-token');
+
+		return handleResponse(response, response?.data?.token, errorMessage);
+	} catch(err){
+		return handleError(err, errorMessage);
+	}
+};
+
+/**
+ * Verify random.org serial
+ * @param {Number} serial - The serial to verify
+ * @returns {Promise<Object>} The verification
+ */
+const verifyRandomOrgSerial = async (serial) => {
+	const errorMessage = 'An error occurred while verifying the random.org serial';
+	try{
+		const response = await instance.get(`/fairness/serial/${serial}`);
+
+		return handleResponse(response, response?.data?.id, errorMessage);
+	} catch(err){
+		return handleError(err, errorMessage);
+	}
+};
+
 module.exports = {
 	getAccessToken,
+	logout,
 	getProfile,
 	getNotifications,
 	getActiveListings,
@@ -678,6 +910,7 @@ module.exports = {
 	getCaseDetails,
 	getFreeCaseCooldowns,
 	getRecentCaseDrops,
+	getCaseDisplayOrder,
 
 	getRainPot,
 	tipRainPot,
@@ -691,6 +924,7 @@ module.exports = {
 
 	getAffiliateInfo,
 	getAffiliateCooldown,
+	claimAffiliateEarnings,
 
 	getRouletteGame,
 	placeRouletteBet,
@@ -699,6 +933,20 @@ module.exports = {
 	getPrivateBattles,
 	createBattle,
 	getBattleDetails,
+	getOldBattleDetails,
 
-	getUnclaimedUpgraderItems
+	getUnclaimedUpgraderItems,
+
+	getJackpotInfo,
+	placeJackpotBet,
+
+	getMinesGame,
+	createMinesGame,
+	uncoverMinesTile,
+
+	getLeaderboardInfo,
+	getMyLeaderboardWagerInfo,
+
+	getKycVerificationToken,
+	verifyRandomOrgSerial
 };

@@ -146,9 +146,11 @@ const Manager = () => {
 		if(CONFIG.ENABLE_BULK_SELL){
 			// Fetch all active listings
 			const activeListings = await getActiveListings();
-			for(const listing of activeListings){
-				ourListings[listing.id] = listing;
-				listedItems.push(listing.item.externalId);
+			if(Array.isArray(activeListings)){
+				for(const listing of activeListings){
+					ourListings[listing.id] = listing;
+					listedItems.push(listing.item.externalId);
+				}
 			}
 			// List all items in inventory on Clash
 			await listAllItems();
