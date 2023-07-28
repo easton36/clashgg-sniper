@@ -637,6 +637,27 @@ const getUnclaimedUpgraderItems = async () => {
 	}
 };
 
+/**
+ * Tip the rain pot
+ * @param {Number} amount - The amount to tip (in cents)
+ */
+const tipRainPot = async (amount) => {
+	const errorMessage = `An error occurred while tipping the rain pot $${amount / 100}`;
+	try{
+		const response = await instance({
+			method: 'PATCH',
+			url: '/rain/tip',
+			data: {
+				amount
+			}
+		});
+
+		return handleResponse(response, response?.data?.success, errorMessage);
+	} catch(err){
+		return handleError(err, errorMessage);
+	}
+};
+
 module.exports = {
 	getAccessToken,
 	getProfile,
@@ -658,9 +679,11 @@ module.exports = {
 	getFreeCaseCooldowns,
 	getRecentCaseDrops,
 
-	getServerHash,
 	getRainPot,
+	tipRainPot,
 	checkRainParticipation,
+
+	getServerHash,
 	checkIpLock,
 
 	getWagerRequirement,
