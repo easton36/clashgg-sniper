@@ -28,6 +28,33 @@ const fetchPricingData = async (apiKey) => {
 	}
 };
 
+/**
+ * Fetches inventory from pricempire
+ * @param {String} apiKey - The API key for the Pricempire API
+ * @param {String} steamId - The Steam ID to fetch inventory for
+ * @returns {Promise<Object>} The inventory data
+ */
+const fetchInventory = async (apiKey, steamId) => {
+	try{
+		const response = await axios.get(`${CONFIG.PRICEMPIRE_API_URL}/v2/inventory`, {
+			params: {
+				api_key: apiKey,
+				input: steamId
+			}
+		});
+
+		const inventory = response?.data?.items;
+
+		return inventory;
+	} catch(err){
+		const errMessage = err?.response?.data?.message || err.message || err;
+		Logger.error(`[PRICEMPIRE] An error occurred while fetching inventory: ${errMessage}`);
+
+		return false;
+	}
+};
+
 module.exports = {
-	fetchPricingData
+	fetchPricingData,
+	fetchInventory
 };

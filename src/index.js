@@ -19,6 +19,7 @@ const {
 } = require('./clash/api');
 const { itemPurchased, scriptStarted, listingCanceled, pauseSniping, tradeOfferAccepted, soldItem } = require('./discord/webhook');
 const { fetchAndInsertPricingData, fetchItemPrice } = require('./pricempire/prices');
+const { fetchInventory } = require('./pricempire/api');
 const { checkDopplerPhase } = require('./pricempire/doppler');
 const { formatListing, formatListingForLogFile } = require('./clash/helpers');
 const { createSoldItemLogFile, createPurchasedItemLogFile } = require('./utils/logfiles.util');
@@ -82,8 +83,25 @@ const Manager = () => {
 
 		// RE-fetching the pricing data every hour
 		if(CONFIG.PRICEMPIRE_API_KEY){
+			_worthStatusUpdate();
 			fetchAndInsertPricingData(CONFIG.PRICEMPIRE_API_KEY);
 		}
+	};
+
+	/**
+	 * Tells the console how much we are worth
+	 */
+	const _worthStatusUpdate = async () => {
+		const inventory = await fetchInventory(CONFIG.PRICEMPIRE_API_KEY, steamId);
+		if(!inventory){
+			// wait 30 seconds and try again
+			return setTimeout(_worthStatusUpdate, 1000 * 30);
+		};
+
+		const accountBalanceUsd = accountBalance * CONFIG.CLASH_COIN_CONVERSION;
+		const inventoryValue = inventory.reduce((acc, item) => acc + item?.prices?.buff, 0);
+
+		Logger.warn(`Account Balance (Coins): ${accountBalance / 100}, Account Balance (USD): $${accountBalanceUsd / 100}, Inventory Value (USD): $${inventoryValue / 100}\n\t\tWe are currently worth: $${(accountBalanceUsd + inventoryValue) / 100}`);
 	};
 
 	/**
@@ -91,9 +109,9 @@ const Manager = () => {
 	 */
 	const _onlineStatusUpdate = async () => {
 		try{
-			await steamP2pOnline();
+			const success = await steamP2pOnline();
 
-			Logger.info('Successfully sent online status update to Clash.gg');
+			if(success) Logger.info('Successfully sent online status update to Clash.gg');
 		} catch(err){
 			if(err.message === 'Unauthorized'){
 				Logger.error('Unauthorized. Generating new access token...');
@@ -113,6 +131,7 @@ const Manager = () => {
 		// Initializing the database if enabled
 		if(CONFIG.PRICEMPIRE_API_KEY){
 			await MongoManager.connect();
+
 			if(CONFIG.ENABLE_PRICE_FETCH_ON_START){
 				await fetchAndInsertPricingData(CONFIG.PRICEMPIRE_API_KEY);
 			}
@@ -162,6 +181,10 @@ const Manager = () => {
 				// List all items in inventory on Clash
 				await listAllItems();
 			}, 1000 * 60 * 60); // 1 hour
+		}
+
+		if(CONFIG.PRICEMPIRE_API_KEY){
+			_worthStatusUpdate();
 		}
 	};
 
