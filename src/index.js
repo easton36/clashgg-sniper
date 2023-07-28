@@ -79,6 +79,7 @@ const Manager = () => {
 		const timeElapsed = new Date() - startTime;
 		const timeElapsedHours = Math.floor(timeElapsed / 1000 / 60 / 60);
 
+		_fetchProfile();
 		Logger.warn(`The Clash.gg manager has been running for ${timeElapsedHours} hours. It is currently ${new Date().toLocaleString()}, and we started at ${startTime.toLocaleString()}`);
 
 		// RE-fetching the pricing data every hour
@@ -140,7 +141,7 @@ const Manager = () => {
 		const generated = await generateAccessToken();
 		if(!generated) return process.exit(1);
 
-		await fetchProfile();
+		await _fetchProfile();
 
 		// Initializing the Steam account
 		if(CONFIG.ENABLE_STEAM_LOGIN){
@@ -230,7 +231,7 @@ const Manager = () => {
 	/**
 	 * Fetches the clash profile
 	 */
-	const fetchProfile = async () => {
+	const _fetchProfile = async () => {
 		// Getting the profile
 		const profile = await getProfile();
 		if(!profile) return Logger.error('No profile was found');
