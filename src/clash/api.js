@@ -17,6 +17,49 @@ const instance = axios.create({
 });
 
 /**
+ * Handles API responses
+ * @param {Object} response - The API response
+ * @param {String} successCondition - The condition that needs to be met for the operation to be considered successful
+ * @param {String} errorMessage - The error message for the Logger
+ * @param {Function} callback - The callback function to call if the operation was successful
+ * @returns {Object|boolean} Returns the response data if successful, else false
+ */
+const handleResponse = (response, successCondition, errorMessage, callback) => {
+	if(!successCondition){
+		Logger.error(`[API] ${errorMessage}: ${response?.data?.message}`);
+		if(!response?.data?.message){
+			console.log(response?.data);
+		}
+
+		return false;
+	}
+
+	if(callback){
+		callback();
+	}
+
+	return response?.data;
+};
+
+/**
+ * Handles request errors
+ * @param {Error} err - The error object
+ * @param {String} errorMessage - The error message for the Logger
+ * @returns {boolean} Always returns false
+ */
+const handleError = (err, errorMessage) => {
+	const errMessage = err?.response?.data?.message || err.message || err;
+	Logger.error(`[API] ${errorMessage}: ${errMessage}`);
+
+	// if we are Unauthorized, we need to get a new access token
+	if(errMessage === 'Unauthorized'){
+		throw new Error('Unauthorized');
+	}
+
+	return false;
+};
+
+/**
  * Gets a Clash.gg access token
  * @param {String} refreshToken - The refresh token for the Clash.gg access token
  * @param {String} cfClearance - The cf_clearance cookie for the Clash.gg access token
@@ -44,10 +87,7 @@ const getAccessToken = async (refreshToken, cfClearance) => {
 
 		return accessToken;
 	} catch(err){
-		const errMessage = err?.response?.data?.message || err.message || err;
-		Logger.error(`[API] An error occurred while getting the access token: ${errMessage}`);
-
-		return false;
+		return handleError(err, 'An error occurred while getting the access token');
 	}
 };
 
@@ -57,25 +97,13 @@ const getAccessToken = async (refreshToken, cfClearance) => {
  * @throws {Error} The error which occurred
  */
 const getProfile = async () => {
+	const errorMessage = 'An error occurred while getting the profile';
 	try{
 		const response = await instance.get('/user/me');
 
-		const profile = response?.data;
-		if(!profile){
-			throw new Error('No profile was found');
-		}
-
-		return profile;
+		return handleResponse(response, response?.data?.id, errorMessage);
 	} catch(err){
-		const errMessage = err?.response?.data?.message || err.message || err;
-		Logger.error(`[API] An error occurred while getting the profile: ${errMessage}`);
-
-		// if we are Unauthorized, we need to get a new access token
-		if(errMessage === 'Unauthorized'){
-			throw new Error('Unauthorized');
-		}
-
-		return false;
+		return handleError(err, errorMessage);
 	}
 };
 
@@ -84,22 +112,13 @@ const getProfile = async () => {
  * @returns {Promise<Object>} The listings
  */
 const getActiveListings = async () => {
+	const errorMessage = 'An error occurred while getting the active listings';
 	try{
 		const response = await instance.get('/steam-p2p/listings/my-active');
 
-		const listings = response?.data;
-
-		return listings;
+		return handleResponse(response, response?.data, errorMessage);
 	} catch(err){
-		const errMessage = err?.response?.data?.message || err.message || err;
-		Logger.error(`[API] An error occurred while getting the active listings: ${errMessage}`);
-
-		// if we are Unauthorized, we need to get a new access token
-		if(errMessage === 'Unauthorized'){
-			throw new Error('Unauthorized');
-		}
-
-		return false;
+		return handleError(err, errorMessage);
 	}
 };
 
@@ -109,34 +128,18 @@ const getActiveListings = async () => {
  * @returns {Promise<Boolean>} Whether or not the listing was bought
  */
 const buyListing = async (listingId) => {
+	const errorMessage = `An error occurred while buying the listing (${listingId})`;
 	try{
 		const response = await instance({
 			method: 'PATCH',
 			url: `/steam-p2p/listings/${listingId}/buy`
 		});
 
-		if(!response?.data?.success){
-			Logger.error(`[API] An error occurred while buying the listing (${listingId}): ${response?.data?.message}`);
-			if(!response?.data?.message){
-				console.log(response?.data);
-			}
-
-			return false;
-		}
-
-		Logger.info(`[API] Successfully bought the listing (${listingId})! New site balance: ${response?.data?.newBalance}`);
-
-		return true;
+		return handleResponse(response, response?.data?.success, errorMessage, () => {
+			Logger.info(`[API] Successfully bought the listing (${listingId})! New site balance: ${response?.data?.newBalance}`);
+		});
 	} catch(err){
-		const errMessage = err?.response?.data?.message || err.message || err;
-		Logger.error(`[API] An error occurred while buying the listing (${listingId}): ${errMessage}${['resource_unavailable', 'item_no_longer_available'].includes(errMessage) ? ' (Someone else beat us to it)' : ''}`);
-
-		// if we are Unauthorized, we need to get a new access token
-		if(errMessage === 'Unauthorized'){
-			throw new Error('Unauthorized');
-		}
-
-		return false;
+		return handleError(err, errorMessage);
 	}
 };
 
@@ -145,22 +148,13 @@ const buyListing = async (listingId) => {
  * @returns {Promise<Object>} The steam inventory
  */
 const getSteamInventory = async () => {
+	const errorMessage = 'An error occurred while getting the steam inventory';
 	try{
 		const response = await instance.get('/steam/inventory');
 
-		const items = response?.data;
-
-		return items;
+		return handleResponse(response, response?.data, errorMessage);
 	} catch(err){
-		const errMessage = err?.response?.data?.message || err.message || err;
-		Logger.error(`[API] An error occurred while getting the steam inventory: ${errMessage}`);
-
-		// if we are Unauthorized, we need to get a new access token
-		if(errMessage === 'Unauthorized'){
-			throw new Error('Unauthorized');
-		}
-
-		return false;
+		return handleError(err, errorMessage);
 	}
 };
 
@@ -170,32 +164,18 @@ const getSteamInventory = async () => {
  * @returns {Promise<Boolean>} Whether or not the listing was deleted
  */
 const deleteListing = async (listingId) => {
+	const errorMessage = `An error occurred while deleting the listing (${listingId})`;
 	try{
 		const response = await instance({
 			method: 'DELETE',
 			url: `/steam-p2p/listings/${listingId}`
 		});
 
-		if(!response?.data?.success){
-			Logger.error(`[API] An error occurred while deleting the listing (${listingId}): ${response?.data?.message}`);
-			if(!response?.data?.message){
-				console.log(response?.data);
-			}
-		}
-
-		Logger.info(`[API] Successfully deleted the listing (${listingId})!`);
-
-		return true;
+		return handleResponse(response, response?.data?.success, errorMessage, () => {
+			Logger.info(`[API] Successfully deleted the listing (${listingId})`);
+		});
 	} catch(err){
-		const errMessage = err?.response?.data?.message || err.message || err;
-		Logger.error(`[API] An error occurred while deleting the listing (${listingId}): ${errMessage}`);
-
-		// if we are Unauthorized, we need to get a new access token
-		if(errMessage === 'Unauthorized'){
-			throw new Error('Unauthorized');
-		}
-
-		return false;
+		return handleError(err, errorMessage);
 	}
 };
 
@@ -206,6 +186,7 @@ const deleteListing = async (listingId) => {
  * @returns {Promise<Object>} The listing
  */
 const createListing = async (externalId, price) => {
+	const errorMessage = `An error occurred while creating the listing (${externalId})`;
 	try{
 		const response = await instance({
 			method: 'POST',
@@ -218,25 +199,9 @@ const createListing = async (externalId, price) => {
 			}
 		});
 
-		const success = response?.data[0]?.status === 'OPEN';
-		if(!success){
-			Logger.error(`[API] An error occurred while creating the listing (${externalId}): ${response?.data?.message}`);
-			if(!response?.data?.message){
-				console.log(response?.data);
-			}
-		}
-
-		return response?.data;
+		return handleResponse(response, response?.data[0]?.status === 'OPEN', errorMessage);
 	} catch(err){
-		const errMessage = err?.response?.data?.message || err.message || err;
-		Logger.error(`[API] An error occurred while creating the listing (${externalId}): ${errMessage}`);
-
-		// if we are Unauthorized, we need to get a new access token
-		if(errMessage === 'Unauthorized'){
-			throw new Error('Unauthorized');
-		}
-
-		return false;
+		return handleError(err, errorMessage);
 	}
 };
 
@@ -246,35 +211,88 @@ const createListing = async (externalId, price) => {
  * @returns {Promise<Boolean>} Whether or not the listing was answered
  */
 const answerListing = async (listingId) => {
+	const errorMessage = `An error occurred while answering the listing (${listingId})`;
 	try{
 		const response = await instance({
 			method: 'PATCH',
 			url: `/steam-p2p/listings/${listingId}/answer`
 		});
 
-		const success = response?.data?.listing?.status === 'ANSWERED';
-		if(!success){
-			Logger.error(`[API] An error occurred while answering the listing (${listingId}): ${response?.data?.message}`);
-			if(!response?.data?.message){
-				console.log(response?.data);
-			}
-
-			return false;
-		}
-
-		Logger.info(`[API] Successfully answered the listing (${listingId})!`);
-
-		return true;
+		return handleResponse(response, response?.data?.listing?.status === 'ANSWERED', errorMessage, () => {
+			Logger.info(`[API] Successfully answered the listing (${listingId})`);
+		});
 	} catch(err){
-		const errMessage = err?.response?.data?.message || err.message || err;
-		Logger.error(`[API] An error occurred while answering the listing (${listingId}): ${errMessage}`);
+		return handleError(err, errorMessage);
+	}
+};
 
-		// if we are Unauthorized, we need to get a new access token
-		if(errMessage === 'Unauthorized'){
-			throw new Error('Unauthorized');
-		}
+/**
+ * Tells clash.gg that we are still online
+ */
+const steamP2pOnline = async () => {
+	const errorMessage = 'An error occurred while telling Clash.gg we are still online';
+	try{
+		const response = await instance({
+			method: 'POST',
+			url: '/steam-p2p/online'
+		});
 
-		return false;
+		return handleResponse(response, response?.data?.success, errorMessage);
+	} catch(err){
+		return handleError(err, errorMessage);
+	}
+};
+
+/**
+ * Opens a free case on Clash.gg
+ * @param {String} clientSeed - The client seed to use
+ * @param {String} caseSlug - The slug of the case to open
+ * @returns {Promise<Object>} The case
+ */
+const openCase = async (clientSeed, caseSlug) => {
+	const errorMessage = `An error occurred while opening the case (${caseSlug})`;
+	try{
+		const response = await instance({
+			method: 'POST',
+			url: '/cases/open',
+			data: {
+				amount: 1,
+				slug: caseSlug,
+				clientSeed
+			}
+		});
+
+		return handleResponse(response, response?.data?.total === 1, errorMessage);
+	} catch(err){
+		return handleError(err, errorMessage);
+	}
+};
+
+/**
+ * Gets all cases on Clash.gg
+ */
+const getCases = async () => {
+	const errorMessage = 'An error occurred while getting all cases';
+	try{
+		const response = await instance.get('/cases');
+
+		return handleResponse(response, response?.data?.length > 0, errorMessage);
+	} catch(err){
+		return handleError(err, errorMessage);
+	}
+};
+
+/**
+ * Gets all free case cooldowns on Clash.gg
+ */
+const getFreeCaseCooldowns = async () => {
+	const errorMessage = 'An error occurred while getting all free case cooldowns';
+	try{
+		const response = await instance.get('/cases/level-cooldown/all');
+
+		return handleResponse(response, response?.data?.length > 0, errorMessage);
+	} catch(err){
+		return handleError(err, errorMessage);
 	}
 };
 
@@ -286,5 +304,10 @@ module.exports = {
 	getSteamInventory,
 	deleteListing,
 	createListing,
-	answerListing
+	answerListing,
+	steamP2pOnline,
+
+	openCase,
+	getCases,
+	getFreeCaseCooldowns
 };

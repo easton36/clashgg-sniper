@@ -4,23 +4,6 @@ const crypto = require('crypto');
 const Logger = require('../utils/logger.util');
 const CONFIG = require('../config');
 
-const genSecWebSocketKey = (plaintext = 'Sampli\'s Clash Script') => {
-	const md5Hash = crypto.createHash('md5').update(plaintext).digest('hex');
-	const base64Hash = Buffer.from(md5Hash, 'hex').toString('base64');
-
-	return base64Hash;
-};
-
-const DEFAULT_HEADERS = {
-	Origin: 'https://clash.gg',
-	'Accept-Encoding': 'gzip, deflate, br',
-	'Accept-Language': 'en-US,en;q=0.9',
-	'User-Agent': CONFIG.USER_AGENT,
-	Pragma: 'no-cache',
-	Upgrade: 'websocket',
-	'Sec-WebSocket-Key': genSecWebSocketKey()
-};
-
 /**
  * Clash.gg Websocket manager
  * @param {Object} options - The options for the Clash.gg Websocket manager
@@ -36,6 +19,28 @@ const ClashWebsocket = ({
 	let updateInProgress = false;
 
 	let wsClosedCount = 0;
+
+	/**
+	 * Generates the Sec-WebSocket-Key
+	 * @param {String} plaintext - The plaintext to generate the Sec-WebSocket-Key
+	 * @returns {String} The generated Sec-WebSocket-Key
+	 */
+	const genSecWebSocketKey = (plaintext = 'Sampli\'s Clash Script') => {
+		const md5Hash = crypto.createHash('md5').update(plaintext).digest('hex');
+		const base64Hash = Buffer.from(md5Hash, 'hex').toString('base64');
+
+		return base64Hash;
+	};
+
+	const DEFAULT_HEADERS = {
+		Origin: 'https://clash.gg',
+		'Accept-Encoding': 'gzip, deflate, br',
+		'Accept-Language': 'en-US,en;q=0.9',
+		'User-Agent': CONFIG.USER_AGENT,
+		Pragma: 'no-cache',
+		Upgrade: 'websocket',
+		'Sec-WebSocket-Key': genSecWebSocketKey()
+	};
 
 	/**
 	 * Initialize the WebSocket connection
@@ -108,6 +113,8 @@ const ClashWebsocket = ({
 	const _open = () => {
 		// emit "auth" event
 		socket.send(JSON.stringify(['auth', accessToken]));
+
+		wsClosedCount = 0;
 
 		return Logger.info(`[WEBSOCKET] Connected to the Clash.gg WebSocket server at ${CONFIG.CLASH_WS_URL}`);
 	};

@@ -14,7 +14,8 @@ const {
 	deleteListing,
 	createListing,
 	getActiveListings,
-	answerListing
+	answerListing,
+	steamP2pOnline
 } = require('./clash/api');
 const { itemPurchased, scriptStarted, listingCanceled, pauseSniping, tradeOfferAccepted, soldItem } = require('./discord/webhook');
 const { fetchAndInsertPricingData, fetchItemPrice } = require('./pricempire/prices');
@@ -77,11 +78,28 @@ const Manager = () => {
 		const timeElapsed = new Date() - startTime;
 		const timeElapsedHours = Math.floor(timeElapsed / 1000 / 60 / 60);
 
-		Logger.info(`The Clash.gg manager has been running for ${timeElapsedHours} hours. It is currently ${new Date().toLocaleString()}, and we started at ${startTime.toLocaleString()}`);
+		Logger.warn(`The Clash.gg manager has been running for ${timeElapsedHours} hours. It is currently ${new Date().toLocaleString()}, and we started at ${startTime.toLocaleString()}`);
 
 		// RE-fetching the pricing data every hour
 		if(CONFIG.PRICEMPIRE_API_KEY){
 			fetchAndInsertPricingData(CONFIG.PRICEMPIRE_API_KEY);
+		}
+	};
+
+	/**
+	 * Tells Clash.gg we are still online every 5 minutes
+	 */
+	const _onlineStatusUpdate = async () => {
+		try{
+			await steamP2pOnline();
+
+			Logger.info('Successfully sent online status update to Clash.gg');
+		} catch(err){
+			if(err.message === 'Unauthorized'){
+				Logger.error('Unauthorized. Generating new access token...');
+
+				await generateAccessToken();
+			}
 		}
 	};
 
@@ -116,6 +134,9 @@ const Manager = () => {
 
 			await steamAccount.login();
 		}
+
+		// set interval every 5 minutes
+		setInterval(_onlineStatusUpdate, 1000 * 60 * 5); // 5 minutes
 
 		// Sending the script started webhook
 		if(CONFIG.DISCORD_WEBHOOK_URL){
