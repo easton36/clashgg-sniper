@@ -27,6 +27,22 @@ const { getCfClearance } = require('./clash/cloudflare_solver');
 
 const MAX_ACTIVE_TRADES = 5;
 
+const validateConfig = () => {
+	const requiredConfigKeys = [
+		'MONGO_URI',
+		'REFRESH_TOKEN',
+		'CLASH_COIN_CONVERSION'
+	];
+
+	for(const key of requiredConfigKeys){
+		if(!CONFIG[key]){
+			Logger.error(`Missing required config key: ${key}`);
+
+			return false;
+		}
+	}
+};
+
 // Print all config settings in a nice column format
 const startupMessage = () => {
 	const configKeys = Object.keys(CONFIG);
@@ -126,6 +142,8 @@ const Manager = () => {
 	 * Initializes the Clash.gg manager
 	 */
 	const initialize = async () => {
+		if(!validateConfig()) return process.exit(1);
+
 		// We run this once an hour to just give time notice
 		setInterval(_aliveStatusUpdate, CONFIG.PRICE_FETCH_INTERVAL * 1000 * 60);
 
