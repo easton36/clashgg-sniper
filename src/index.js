@@ -61,6 +61,7 @@ const startupMessage = () => {
 };
 
 const Manager = () => {
+	if(!validateConfig()) return process.exit(1);
 	Logger.verbose(startupMessage());
 
 	const startTime = new Date();
@@ -142,8 +143,6 @@ const Manager = () => {
 	 * Initializes the Clash.gg manager
 	 */
 	const initialize = async () => {
-		if(!validateConfig()) return process.exit(1);
-
 		// We run this once an hour to just give time notice
 		setInterval(_aliveStatusUpdate, CONFIG.PRICE_FETCH_INTERVAL * 1000 * 60);
 
