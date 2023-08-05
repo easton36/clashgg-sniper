@@ -12,13 +12,21 @@ const {
 	buyListing,
 	getSteamInventory,
 	deleteListing,
-	createListing,
+	// createListing,
 	createListings,
 	getActiveListings,
 	answerListing,
 	steamP2pOnline
 } = require('./clash/api');
-const { itemPurchased, scriptStarted, listingCanceled, pauseSniping, tradeOfferAccepted, soldItem } = require('./discord/webhook');
+const {
+	itemPurchased,
+	scriptStarted,
+	listingCanceled,
+	pauseSniping,
+	reEnableSniping,
+	tradeOfferAccepted,
+	soldItem
+} = require('./discord/webhook');
 const { fetchAndInsertPricingData, fetchItemPrice } = require('./pricempire/prices');
 const { fetchInventory } = require('./pricempire/api');
 const { checkDopplerPhase } = require('./pricempire/doppler');
@@ -337,7 +345,7 @@ const Manager = () => {
 
 			for(const chunk of chunkedInventory){
 				const formattedItems = formatItemsForBulkSell(chunk);
-				Logger.info(`Listing ${formattedItems.length} items from chunk ${chunkedInventory.indexOf(chunk) + 1} of ${chunkedInventory.length}}`);
+				Logger.info(`Listing ${formattedItems.length} items from chunk ${chunkedInventory.indexOf(chunk) + 1} of ${chunkedInventory.length}`);
 
 				const listings = await createListings(formattedItems);
 				if(!listings) return;
@@ -399,6 +407,7 @@ const Manager = () => {
 			Logger.warn(`Account balance is currently ${accountBalance}, re-enabling sniping...`);
 
 			enableSniping = true;
+			reEnableSniping(CONFIG.DISCORD_WEBHOOK_URL, accountBalance);
 		}
 	};
 

@@ -234,6 +234,41 @@ const pauseSniping = async (webhookURL, balance) => {
 };
 
 /**
+ * If we re-enabled sniping
+ * @param {String} webhookURL - The URL of the Discord webhook
+ * @param {Number} balance - The balance of the account
+ */
+const reEnableSniping = async (webhookURL, balance) => {
+	try{
+		const response = await axios({
+			method: 'POST',
+			url: webhookURL,
+			data: {
+				content: null,
+				embeds: [{
+					title: 'Re-Enabled Sniping',
+					description: 'We have re-enabled sniping!',
+					color: 1376000,
+					fields: [{
+						name: 'Balance (COINS)',
+						value: `$${(balance / 100).toFixed(2)}`
+					}],
+					timestamp: new Date().toJSON()
+				}],
+				username: WEBHOOK_USERNAME,
+				avatar_url: WEBHOOK_AVATAR_URL,
+				attachments: []
+			}
+		});
+
+		return Logger.info(`[DISCORD] Successfully sent the enable sniping webhook. Status: ${response.status}`);
+	} catch(err){
+		const errMessage = err?.response?.data?.message || err.message || err;
+		Logger.error(`[DISCORD] An error occurred while sending the enable sniping webhook: ${errMessage}`);
+	}
+};
+
+/**
  * If we sold an item
  * @param {String} webhookURL - The URL of the Discord webhook
  * @param {Object} data - The data of the sold item
@@ -296,5 +331,6 @@ module.exports = {
 	listingCanceled,
 	tradeOfferAccepted,
 	pauseSniping,
+	reEnableSniping,
 	soldItem
 };
