@@ -42,6 +42,8 @@ const validateConfig = () => {
 			return false;
 		}
 	}
+
+	return true;
 };
 
 // Print all config settings in a nice column format
