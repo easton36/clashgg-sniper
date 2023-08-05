@@ -319,6 +319,8 @@ const Manager = () => {
 				return !alreadyListed && item.isAccepted && item.isTradable;
 			});
 
+			Logger.info(`We are about to list ${filteredInventory.length || 0} items`);
+
 			// chunk filteredInventory into 15 items per chunk
 			const chunkedInventory = filteredInventory.reduce((acc, item) => {
 				const lastChunk = acc[acc.length - 1];
@@ -333,6 +335,7 @@ const Manager = () => {
 
 			for(const chunk of chunkedInventory){
 				const formattedItems = formatItemsForBulkSell(chunk);
+				Logger.info(`Listing ${formattedItems.length} items from chunk ${chunkedInventory.indexOf(chunk) + 1} of ${chunkedInventory.length}}`);
 
 				const listings = await createListings(formattedItems);
 				if(!listings) return;
