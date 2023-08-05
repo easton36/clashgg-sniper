@@ -5,7 +5,9 @@ module.exports = {
 		watch: false,
 
 		max_restarts: 5,
-		autorestart: true,
+		restart_delay: 1000,
+		min_uptime: 5000,
+		autorestart: false,
 
 		log_date_format: 'YYYY-MM-DD HH:mm Z',
 		error_file: './logs/CONSOLE_ERROR.log',
