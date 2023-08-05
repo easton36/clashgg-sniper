@@ -322,9 +322,15 @@ const Manager = () => {
 			}
 
 			Logger.info(`Fetched inventory with ${inventory.length || 0} items`);
+			// apparently we can only list one of an AGENT skin at a time, so we need to filter them out
+			const agentsToList = Object.values(ourListings).filter(listing => listing?.item?.name?.includes('Agent')).map(listing => listing?.item?.name);
 			// filter inventory for items that have not been listed
 			const filteredInventory = inventory.filter(item => {
 				const alreadyListed = listedItems.includes(item.externalId);
+				if(item?.name?.includes('Agent')){
+					if(agentsToList.includes(item.name)) return false;
+					agentsToList.push(item.name);
+				}
 
 				return !alreadyListed && item.isAccepted && item.isTradable;
 			});
@@ -342,6 +348,10 @@ const Manager = () => {
 
 				return acc;
 			}, [[]]);
+
+			if(chunkedInventory[0].length === 0){
+				return Logger.warn('No items to list!');
+			}
 
 			for(const chunk of chunkedInventory){
 				const formattedItems = formatItemsForBulkSell(chunk);
@@ -589,7 +599,7 @@ const Manager = () => {
 	 * @param {Object} data - The data of the p2p listing
 	 */
 	const _processSellOrderAsked = async (data) => {
-		Logger.info(`[WEBSOCKET] We ASKED to sell a p2p listing. ${formatListing(data)}`);
+		Logger.info(`[WEBSOCKET] We were ASKED to sell a p2p listing. ${formatListing(data)}`);
 		// update listing
 		ourListings[data.id] = data;
 		// answer listing
