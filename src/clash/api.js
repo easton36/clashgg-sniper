@@ -274,6 +274,29 @@ const createListing = async (externalId, price) => {
 };
 
 /**
+ * Creates multiple Clash.gg listings
+ * @param {Object[]} items - The items to list
+ * @returns {Promise<Object>} The listings
+ * @throws {Error} The error which occurred
+ */
+const createListings = async (items) => {
+	const errorMessage = 'An error occurred while creating the listings';
+	try{
+		const response = await instance({
+			method: 'POST',
+			url: '/steam-p2p/listings',
+			data: {
+				items
+			}
+		});
+
+		return handleResponse(response, response?.data, errorMessage);
+	} catch(err){
+		return handleError(err, errorMessage);
+	}
+};
+
+/**
  * Answers a Clash.gg listing asking to sell an item
  * @param {String} listingId - The ID of the listing to answer
  * @returns {Promise<Boolean>} Whether or not the listing was answered
@@ -903,6 +926,7 @@ module.exports = {
 	buyListing,
 	deleteListing,
 	createListing,
+	createListings,
 	answerListing,
 
 	openCase,

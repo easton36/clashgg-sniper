@@ -13,6 +13,7 @@ const {
 	getSteamInventory,
 	deleteListing,
 	createListing,
+	createListings,
 	getActiveListings,
 	answerListing,
 	steamP2pOnline
@@ -254,6 +255,32 @@ const Manager = () => {
 	};
 
 	/**
+	 * Format items for bulk sell
+	 * @param {Array} items - The items to format
+	 * @returns {Array} The formatted items
+	 */
+	const formatItemsForBulkSell = (items) => {
+		const formattedItems = [];
+
+		for(const item of items){
+			const dopplerPhase = checkDopplerPhase(item.imageUrl);
+			if(dopplerPhase && !CONFIG.ENABLE_DOPPLER_SELL){
+				Logger.warn(`Item ${item.name} is a DOPPLER. Clash.gg does not price dopplers correctly. Skipping...`);
+				continue;
+			}
+
+			const askPrice = Math.round(item?.price * CONFIG.INVENTORY_SELL_MARKUP_PERCENT);
+
+			formattedItems.push({
+				externalId: item.externalId,
+				askPrice
+			});
+		}
+
+		return formattedItems;
+	};
+
+	/**
 	 * List all items in inventory on Clash
 	 */
 	const listAllItems = async () => {
@@ -274,8 +301,38 @@ const Manager = () => {
 
 				return !alreadyListed && item.isAccepted && item.isTradable;
 			});
+
+			// chunk filteredInventory into 15 items per chunk
+			const chunkedInventory = filteredInventory.reduce((acc, item) => {
+				const lastChunk = acc[acc.length - 1];
+				if(lastChunk.length < 15){
+					lastChunk.push(item);
+				} else{
+					acc.push([item]);
+				}
+
+				return acc;
+			}, [[]]);
+
+			for(const chunk of chunkedInventory){
+				const formattedItems = formatItemsForBulkSell(chunk);
+
+				const listings = await createListings(formattedItems);
+				if(!listings) return;
+
+				for(const listing of listings){
+					ourListings[listing.id] = listing;
+					listedItems.push(listing.item.externalId);
+
+					Logger.info(`Successfully listed item: ${listing?.item?.name} for $${listing?.item?.askPrice / 100} coins!`);
+				}
+
+				// wait 3 seconds before listing another chunk
+				await new Promise(resolve => setTimeout(resolve, 1000 * 3));
+			}
+
 			// list all items in filteredInventory
-			for(const item of filteredInventory){
+			/* for(const item of filteredInventory){
 				const dopplerPhase = checkDopplerPhase(item.imageUrl);
 				if(dopplerPhase && !CONFIG.ENABLE_DOPPLER_SELL){
 					Logger.warn(`Item ${item.name} is a DOPPLER. Clash.gg does not price dopplers correctly. Skipping...`);
@@ -291,7 +348,10 @@ const Manager = () => {
 				listedItems.push(item.externalId);
 
 				Logger.info(`Successfully listed item: ${item?.name} for $${askPrice / 100} coins!`);
-			}
+
+				// wait 3 seconds before listing another item
+				await new Promise(resolve => setTimeout(resolve, 1000 * 3));
+			} */
 		} catch(err){
 			if(err.message === 'Unauthorized'){
 				Logger.error('Unauthorized. Generating new access token...');
