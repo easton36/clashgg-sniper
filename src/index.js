@@ -651,16 +651,18 @@ const Manager = () => {
 	 * @returns {void}
 	 */
 	const _processTradeQueue = async () => {
+		// If there are no trades left to process, exit
+		if(activeTradesQueue.length === 0){
+			Logger.info('[QUEUE] There are no trades left to process.');
+
+			return processingQueue = false;
+		}
+
 		// If we're already processing the queue or there are too many active trades, wait 5 seconds and try again
 		if(processingQueue || activeTrades >= MAX_ACTIVE_TRADES){
 			Logger.warn('[QUEUE] We are already processing the queue or there are too many active trades. Waiting 5 seconds...');
 
 			return setTimeout(_processTradeQueue, 1000 * 5);
-		}
-
-		// If there are no trades left to process, exit
-		if(activeTradesQueue.length === 0){
-			return processingQueue = false;
 		}
 
 		processingQueue = true;

@@ -17,6 +17,10 @@ const instance = axios.create({
 });
 
 /**
+ * There is a lot more than just market functionality in here, lots of possibilities...
+ */
+
+/**
  * This doesn't implement CRASH functionality because it is WEBSOCKET only
  * Route: wss://gs.clash.gg/
  * To place a bet (SEND): ["placeBet",{"amount":10,"autoCashoutAt":50}]
