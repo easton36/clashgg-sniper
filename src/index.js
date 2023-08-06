@@ -713,10 +713,9 @@ const Manager = () => {
 		}
 		case 'CANCELED-SYSTEM': {
 			if(sellerSteamId === steamId){
-				activeTrades--;
-				Logger.warn(`[WEBSOCKET] We CANCELED a p2p listing we sold. ${formatListing(data)}`);
+				Logger.warn(`[WEBSOCKET] A p2p listing we sold was CANCELED by the system. ${formatListing(data)}`);
 
-				return _processTradeQueue();
+				return listAllItems();
 			}
 
 			if(CONFIG.DISCORD_WEBHOOK_URL){
@@ -806,6 +805,8 @@ const Manager = () => {
 				activeTrades--;
 				// process next trade
 				_processTradeQueue();
+
+				return listAllItems();
 			} else{
 				Logger.error(`[WEBSOCKET] A p2p listing we asked to purchase FAILED to send. ${formatListing(data)}`);
 			}
