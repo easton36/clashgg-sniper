@@ -25,7 +25,8 @@ const {
 	pauseSniping,
 	reEnableSniping,
 	tradeOfferAccepted,
-	soldItem
+	soldItem,
+	accountValue
 } = require('./discord/webhook');
 const { fetchAndInsertPricingData, fetchItemPrice } = require('./pricempire/prices');
 const { fetchInventory } = require('./pricempire/api');

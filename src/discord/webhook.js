@@ -276,7 +276,6 @@ const reEnableSniping = async (webhookURL, balance) => {
  * @param {Object} data.item - The item data
  * @param {String} data.item.name - The name of the item
  * @param {Number} data.item.price - The price of the item
- * @param
  */
 const soldItem = async (webhookURL, data, accountBalance) => {
 	try{
@@ -325,6 +324,57 @@ const soldItem = async (webhookURL, data, accountBalance) => {
 	}
 };
 
+/**
+ * Letting us know how much we are worth
+ * @param {String} webhookURL - The URL of the Discord webhook
+ * @param {Number} accountBalance - The balance of the account
+ * @param {Number} accountBalanceUsd - The balance of the account in USD
+ * @param {Number} inventoryValue - The value of the inventory
+ * @returns {Promise<void>}
+ */
+const accountValue = async (webhookURL, accountBalance, accountBalanceUsd, inventoryValue) => {
+	try{
+		const response = await axios({
+			method: 'POST',
+			url: webhookURL,
+			data: {
+				content: null,
+				embeds: [{
+					title: 'Account Value',
+					color: 5814783,
+					fields: [
+						{
+							name: 'Account Balance (Coins)',
+							value: `$${(accountBalance / 100).toFixed(2)}`
+						},
+						{
+							name: 'Account Balance (USD)',
+							value: `$${(accountBalanceUsd / 100).toFixed(2)}`
+						},
+						{
+							name: 'Inventory Value (USD)',
+							value: `$${(inventoryValue / 100).toFixed(2)}`
+						},
+						{
+							name: 'Currently Worth (USD)',
+							value: `$${((accountBalanceUsd + inventoryValue) / 100).toFixed(2)}`
+						}
+					],
+					timestamp: new Date().toJSON()
+				}],
+				username: WEBHOOK_USERNAME,
+				avatar_url: WEBHOOK_AVATAR_URL,
+				attachments: []
+			}
+		});
+
+		return Logger.info(`[DISCORD] Successfully sent the account value webhook. Status: ${response.status}`);
+	} catch(err){
+		const errMessage = err?.response?.data?.message || err.message || err;
+		Logger.error(`[DISCORD] An error occurred while sending the account value webhook: ${errMessage}`);
+	}
+};
+
 module.exports = {
 	scriptStarted,
 	itemPurchased,
@@ -332,5 +382,6 @@ module.exports = {
 	tradeOfferAccepted,
 	pauseSniping,
 	reEnableSniping,
-	soldItem
+	soldItem,
+	accountValue
 };
