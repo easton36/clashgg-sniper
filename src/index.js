@@ -132,6 +132,7 @@ const Manager = () => {
 		const inventoryValue = inventory.reduce((acc, item) => acc + item?.prices?.buff, 0);
 
 		Logger.warn(`Account Balance (Coins): ${accountBalance / 100}, Account Balance (USD): $${accountBalanceUsd / 100}, Inventory Value (USD): $${inventoryValue / 100}\n\t\tWe are currently worth: $${(accountBalanceUsd + inventoryValue) / 100}`);
+		accountValue(CONFIG.DISCORD_WEBHOOK_URL, accountBalance, accountBalanceUsd, inventoryValue);
 	};
 
 	/**
