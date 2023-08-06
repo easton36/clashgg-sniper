@@ -416,6 +416,7 @@ const Manager = () => {
 			Logger.error(`Account balance is currently ${accountBalance}, too low to snipe anything. Disabling sniping...`);
 
 			enableSniping = false;
+			pauseSniping(CONFIG.DISCORD_WEBHOOK_URL, accountBalance);
 		} else if(accountBalance > CONFIG.MIN_PRICE && !enableSniping){
 			Logger.warn(`Account balance is currently ${accountBalance}, re-enabling sniping...`);
 
@@ -516,7 +517,7 @@ const Manager = () => {
 			if(data?.item?.askPrice > accountBalance){
 				Logger.warn(`[WEBSOCKET] Received new p2p listing, but it was ignored due to INSUFFICIENT BALANCE. Current Balance: ${accountBalance}, ${formatListing(data)}`);
 
-				checkAccountBalance();
+				return checkAccountBalance();
 			}
 
 			const markupPercentage = item?.askPrice / item?.price;
