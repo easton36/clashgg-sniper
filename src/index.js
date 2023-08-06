@@ -660,7 +660,8 @@ const Manager = () => {
 
 		// If we're already processing the queue or there are too many active trades, wait 5 seconds and try again
 		if(processingQueue || activeTrades >= MAX_ACTIVE_TRADES){
-			Logger.warn('[QUEUE] We are already processing the queue or there are too many active trades. Waiting 5 seconds...');
+			Logger.warn(`[QUEUE] We can't process the trade queue right now. Processing Queue: ${processingQueue}, Active Trades: ${activeTrades}. Waiting 5 seconds...`);
+			processingQueue = false;
 
 			return setTimeout(_processTradeQueue, 1000 * 5);
 		}
