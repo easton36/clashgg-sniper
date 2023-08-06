@@ -222,8 +222,11 @@ const Manager = () => {
 	 * @returns {String} The access token
 	 */
 	const generateAccessToken = async () => {
+		if(CONFIG.IP_WHITELISTED){
+			Logger.info('IP is whitelisted. Skipping Cloudflare clearance...');
+		}
 		// fetch cf_clearance cookie
-		const cfClearance = await getCfClearance(CONFIG.REFRESH_TOKEN);
+		const cfClearance = CONFIG.IP_WHITELISTED ? null : await getCfClearance(CONFIG.REFRESH_TOKEN);
 
 		accessToken = await getAccessToken(CONFIG.REFRESH_TOKEN, cfClearance); // CONFIG.CF_CLEARANCE);
 		if(!accessToken){

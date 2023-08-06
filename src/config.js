@@ -11,6 +11,7 @@ module.exports = {
 	USER_AGENT: process.env.USER_AGENT,
 
 	REFRESH_TOKEN: process.env.REFRESH_TOKEN,
+	IP_WHITELISTED: process.env.IP_WHITELISTED === 'true',
 	CF_CLEARANCE: process.env.CF_CLEARANCE,
 
 	PRICEMPIRE_API_URL: 'https://api.pricempire.com',
