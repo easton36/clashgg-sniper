@@ -340,6 +340,21 @@ const steamP2pOnline = async () => {
 };
 
 /**
+ * Fetches our withdrawal history
+ * @returns {Promise<Object[]>} The withdrawal history
+ */
+const getWithdrawalHistory = async () => {
+	const errorMessage = 'An error occurred while getting the withdrawal history';
+	try{
+		const response = await instance.get('/payments/withdrawals');
+
+		return handleResponse(response, response?.data, errorMessage);
+	} catch(err){
+		return handleError(err, errorMessage);
+	}
+};
+
+/**
  * Opens a free case on Clash.gg
  * @param {String} clientSeed - The client seed to use
  * @param {String} caseSlug - The slug of the case to open
@@ -926,6 +941,8 @@ module.exports = {
 
 	getSteamInventory,
 	steamP2pOnline,
+
+	getWithdrawalHistory,
 
 	buyListing,
 	deleteListing,

@@ -3,7 +3,8 @@ const mongoose = require('mongoose');
 module.exports = mongoose.model('item', new mongoose.Schema({
 	name: {
 		type: String,
-		required: true
+		required: true,
+		index: true
 	},
 	prices: {
 		buff163: {

@@ -16,7 +16,8 @@ const {
 	createListings,
 	getActiveListings,
 	answerListing,
-	steamP2pOnline
+	steamP2pOnline,
+	getWithdrawalHistory
 } = require('./clash/api');
 const {
 	itemPurchased,
@@ -36,6 +37,9 @@ const { createSoldItemLogFile, createPurchasedItemLogFile } = require('./utils/l
 const { getCfClearance } = require('./clash/cloudflare_solver');
 
 const MAX_ACTIVE_TRADES = 5;
+
+const ITEMS_TO_IGNORE_SET = new Set(CONFIG.ITEMS_TO_IGNORE);
+const STRINGS_TO_IGNORE_SET = new Set(CONFIG.STRINGS_TO_IGNORE);
 
 const validateConfig = () => {
 	const requiredConfigKeys = [
@@ -514,24 +518,26 @@ const Manager = () => {
 		try{
 			if(!enableSniping) return false;
 
-			const { item } = data;
+			const askPrice = data?.item?.askPrice;
+			const price = data?.item?.price;
+			const name = data?.item?.name;
+			const imageUrl = data?.item?.imageUrl;
 			// check if we can afford the item
-			if(data?.item?.askPrice > accountBalance){
+			if(askPrice > accountBalance){
 				Logger.warn(`[WEBSOCKET] Received new p2p listing, but it was ignored due to INSUFFICIENT BALANCE. Current Balance: ${accountBalance}, ${formatListing(data)}`);
 
 				return checkAccountBalance();
 			}
 
-			const markupPercentage = item?.askPrice / item?.price;
-
-			const dopplerPhase = checkDopplerPhase(item.imageUrl);
+			const markupPercentage = askPrice / price;
 			// check if meets criteria
-			const containsStringToIgnore = CONFIG.STRINGS_TO_IGNORE.some(string => item?.name.toLowerCase().includes(string.toLowerCase()));
+			const containsStringToIgnore = CONFIG.STRINGS_TO_IGNORE.some(string => name.toLowerCase().includes(string.toLowerCase()));
 			if(
-				item?.askPrice < CONFIG.MIN_PRICE ||
-				item?.askPrice > CONFIG.MAX_PRICE ||
-				CONFIG.ITEMS_TO_IGNORE.includes(item?.name) || markupPercentage > CONFIG.MAX_MARKUP_PERCENT || containsStringToIgnore ||
-				(CONFIG.CHECK_BUFF_PRICE && dopplerPhase) // if item has a doppler phase, we should also check buff price... could be a good deal!
+				askPrice < CONFIG.MIN_PRICE ||
+				askPrice > CONFIG.MAX_PRICE ||
+				ITEMS_TO_IGNORE_SET.has(name) ||
+				markupPercentage > CONFIG.MAX_MARKUP_PERCENT ||
+				containsStringToIgnore
 			){
 				Logger.info(`[WEBSOCKET] Received new p2p listing, but it was ignored due to CONFIG. ${formatListing(data, 'ignored')}`);
 
@@ -540,10 +546,13 @@ const Manager = () => {
 
 			let extraData = {};
 			if(CONFIG.CHECK_BUFF_PRICE){
-				const priceData = await fetchItemPrice(item.name);
+				// if item has a doppler phase, we should also check buff price... could be a good deal!
+				const dopplerPhase = checkDopplerPhase(imageUrl);
+
+				const priceData = await fetchItemPrice(name);
 				if(!priceData) return false;
 				// calculate buff percentage, convert askPrice to USD
-				const askPriceUSD = item.askPrice * CONFIG.CLASH_COIN_CONVERSION;
+				const askPriceUSD = askPrice * CONFIG.CLASH_COIN_CONVERSION;
 				// if we have a doppler phase use that specific buff price
 				const buffPrice = priceData?.prices[dopplerPhase ? `buff163_${dopplerPhase}` : 'buff163'];
 				const buffPercentage = askPriceUSD / buffPrice;
@@ -558,9 +567,6 @@ const Manager = () => {
 				}
 			}
 
-			listingsToWatch[data.id] = data;
-			Logger.info(`[WEBSOCKET] Received new p2p listing to SNIPE. ${formatListing(data, 'buff', extraData)}`);
-
 			// buy the listing
 			const purchased = await buyListing(data.id);
 			if(!purchased){
@@ -568,6 +574,9 @@ const Manager = () => {
 
 				return false;
 			}
+
+			listingsToWatch[data.id] = data;
+			Logger.info(`[WEBSOCKET] Received new p2p listing to SNIPE. ${formatListing(data, 'buff', extraData)}`);
 
 			// reduce account balance
 			modifyBalance(-data.item.askPrice);
@@ -582,7 +591,12 @@ const Manager = () => {
 			return true;
 		} catch(err){
 			Logger.error(`[WEBSOCKET] An error occurred while processing a new p2p listing: ${err.message || err}`);
-			generateAccessToken();
+			if(err.message === 'Unauthorized'){
+				Logger.error('Unauthorized. Generating new access token...');
+				await generateAccessToken();
+
+				return listAllItems();
+			}
 		}
 	};
 
