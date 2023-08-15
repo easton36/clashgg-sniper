@@ -132,7 +132,7 @@ const Manager = () => {
 			return setTimeout(_worthStatusUpdate, 1000 * 30);
 		};
 
-		const accountBalanceUsd = accountBalance * CONFIG.CLASH_COIN_CONVERSION;
+		const accountBalanceUsd = accountBalance / CONFIG.CLASH_COIN_CONVERSION;
 		const inventoryValue = inventory.reduce((acc, item) => acc + item?.prices?.buff, 0);
 
 		Logger.warn(`Account Balance (Coins): ${accountBalance / 100}, Account Balance (USD): $${accountBalanceUsd / 100}, Inventory Value (USD): $${inventoryValue / 100}\n\t\tWe are currently worth: $${(accountBalanceUsd + inventoryValue) / 100}`);
@@ -552,7 +552,7 @@ const Manager = () => {
 				const priceData = await fetchItemPrice(name);
 				if(!priceData) return false;
 				// calculate buff percentage, convert askPrice to USD
-				const askPriceUSD = askPrice * CONFIG.CLASH_COIN_CONVERSION;
+				const askPriceUSD = askPrice / CONFIG.CLASH_COIN_CONVERSION;
 				// if we have a doppler phase use that specific buff price
 				const buffPrice = priceData?.prices[dopplerPhase ? `buff163_${dopplerPhase}` : 'buff163'];
 				const buffPercentage = askPriceUSD / buffPrice;

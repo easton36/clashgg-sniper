@@ -60,7 +60,7 @@ const itemPurchased = async (webhookURL, data, extraData) => {
 			},
 			{
 				name: 'Price (USD)',
-				value: `$${((data?.item?.askPrice * CONFIG.CLASH_COIN_CONVERSION) / 100).toFixed(2)}`
+				value: `$${((data?.item?.askPrice / CONFIG.CLASH_COIN_CONVERSION) / 100).toFixed(2)}`
 			},
 			{
 				name: 'Price (Coins)',
@@ -298,7 +298,7 @@ const soldItem = async (webhookURL, data, accountBalance) => {
 						},
 						{
 							name: 'Price (USD)',
-							value: `$${((data?.item?.askPrice * CONFIG.CLASH_COIN_CONVERSION) / 100).toFixed(2)}`
+							value: `$${((data?.item?.askPrice / CONFIG.CLASH_COIN_CONVERSION) / 100).toFixed(2)}`
 						},
 						{
 							name: 'Price (Coins)',

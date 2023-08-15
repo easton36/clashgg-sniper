@@ -13,7 +13,7 @@ const { checkDopplerPhase } = require('../pricempire/doppler');
 const formatListing = (data, status, extraData) => {
 	let itemString = `Listing ID: ${data.id}, Item Name: ${data.item?.name}`;
 	itemString += `\n\t\tItem Price (COINS): ${data.item?.price}, Item Ask Price (COINS): ${data.item?.askPrice}, Item Markup: ${data?.item?.askPrice / data?.item?.price}`;
-	itemString += `\n\t\tItem Price (USD): ${data.item?.price * CONFIG.CLASH_COIN_CONVERSION}, Item Ask Price (USD): ${data.item?.askPrice * CONFIG.CLASH_COIN_CONVERSION}`;
+	itemString += `\n\t\tItem Price (USD): ${data.item?.price / CONFIG.CLASH_COIN_CONVERSION}, Item Ask Price (USD): ${data.item?.askPrice / CONFIG.CLASH_COIN_CONVERSION}`;
 
 	switch(status){
 	case 'buff':
@@ -47,8 +47,8 @@ const formatListingForLogFile = async (data, type, offerId) => {
 			stickers: data?.item?.stickers, // the stickers of the item
 			price: data?.item?.price, // the price of the item
 			askPrice: data?.item?.askPrice, // the ask price of the item
-			priceUsd: data?.item?.price * CONFIG.CLASH_COIN_CONVERSION, // the price of the item in USD
-			askPriceUsd: data?.item?.askPrice * CONFIG.CLASH_COIN_CONVERSION, // the ask price of the item in USD
+			priceUsd: data?.item?.price / CONFIG.CLASH_COIN_CONVERSION, // the price of the item in USD
+			askPriceUsd: data?.item?.askPrice / CONFIG.CLASH_COIN_CONVERSION, // the ask price of the item in USD
 			markupPercentage: data?.item?.askPrice / data?.item?.price // the markup percentage of the item
 		}
 	};
