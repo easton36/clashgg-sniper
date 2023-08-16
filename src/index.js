@@ -648,7 +648,7 @@ const Manager = () => {
 			contextid,
 			assetid,
 			name: data?.item?.name
-		});
+		}, CONFIG.STEAM_OFFER_MESSAGE);
 		// create timeout to cancel trade
 		if(offerId){
 			createSentTradeCancelTimeout(data.id, offerId, data?.stepExpiresAt);
