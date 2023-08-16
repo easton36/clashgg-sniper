@@ -39,7 +39,8 @@ const fetchInventory = async (apiKey, steamId) => {
 		const response = await axios.get(`${CONFIG.PRICEMPIRE_API_URL}/v2/inventory`, {
 			params: {
 				api_key: apiKey,
-				input: steamId
+				input: steamId,
+				force: true
 			}
 		});
 

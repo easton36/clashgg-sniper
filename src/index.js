@@ -418,6 +418,8 @@ const Manager = () => {
 	const modifyBalance = async (balanceChange) => {
 		accountBalance += balanceChange;
 
+		if(!CONFIG.ENABLE_ITEM_SNIPING) return;
+
 		if(accountBalance < CONFIG.MIN_PRICE){
 			Logger.error(`Account balance is currently ${accountBalance}, too low to snipe anything. Disabling sniping...`);
 
@@ -435,6 +437,7 @@ const Manager = () => {
 	 * Checks account balance and takes action if needed
 	 */
 	const checkAccountBalance = async () => {
+		if(!CONFIG.ENABLE_ITEM_SNIPING) return;
 		if(accountBalance > CONFIG.MIN_PRICE) return;
 
 		Logger.error(`Account balance is currently ${accountBalance}, too low to snipe anything. Disabling sniping...`);
