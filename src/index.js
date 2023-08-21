@@ -569,7 +569,7 @@ const Manager = () => {
 				extraData = { buffPrice, buffPercentage, askPriceUSD };
 
 				// check if buff percentage is greater than max buff percentage
-				if(buffPercentage > CONFIG.MAX_BUFF_PERCENT){
+				if(buffPercentage > CONFIG.MAX_BUFF_PERCENT || !buffPrice){
 					Logger.info(`[WEBSOCKET] Received new p2p listing, but it was ignored due to BUFF. ${formatListing(data, 'buff', extraData)}`);
 
 					return false;
