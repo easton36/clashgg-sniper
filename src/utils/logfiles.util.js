@@ -87,7 +87,7 @@ const createSoldItemLogFile = (data) => {
  */
 const findBuyLogFileByItem = (name, assetid, float) => {
 	try{
-		Logger.info(`[LOG] Finding buy log file by item ${name} (${assetid})`);
+		Logger.info(`[LOG] Finding buy log file by item ${name}. Asset ID: ${assetid}, Float: ${float}`);
 		// read log file
 		const logFile = JSON.parse(fs.readFileSync(purchasedItemsLogFile));
 
@@ -99,11 +99,11 @@ const findBuyLogFileByItem = (name, assetid, float) => {
 				(item?.item?.float === float)
 			)
 		);
-		if(!item) throw new Error(`Could not find buy log file by item ${name} (${assetid})`);
+		if(!item) throw new Error('Array search returned no results');
 
 		return item;
 	} catch(err){
-		Logger.error(`[LOG] An error occurred while finding buy log file by item: ${err?.message || err}`);
+		Logger.error(`[LOG] An error occurred while finding buy log file by item ${name}. Asset ID: ${assetid}, Float: ${float}: ${err?.message || err}`);
 
 		return null;
 	}
