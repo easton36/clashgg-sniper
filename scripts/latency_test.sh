@@ -14,8 +14,8 @@ for i in $(seq 1 $count); do
                             -H 'Connection: keep-alive' \
                             --compressed -s -w "%{time_starttransfer}")
     
-    # Convert the response time to milliseconds and round it to an integer value
-    response_time_ms=$(printf "%.0f" $(echo "$response_time_float * 1000" | bc -l))
+    # Convert the floating point number to an integer (milliseconds)
+    response_time_ms=$(echo $response_time_float*1000 | awk '{printf "%d", $0}')
 
     # Accumulate the response times
     total_time=$((total_time + response_time_ms))
