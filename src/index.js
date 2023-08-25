@@ -801,6 +801,9 @@ const Manager = () => {
 
 				// fetch the log for when we purchased the item
 				const itemBuyLog = await findBuyLogFileByItem(data.item.name, data.item.assetid);
+				if(!itemBuyLog){
+					Logger.warn(`[WEBSOCKET] Couldn't find item buy log for item we just sold. ${formatListing(data)}`);
+				}
 
 				if(soldLogs[data.id]){
 					soldLogs[data.id].receivedAt = new Date().toISOString();
