@@ -33,7 +33,7 @@ const { fetchAndInsertPricingData, fetchItemPrice } = require('./pricempire/pric
 const { fetchInventory } = require('./pricempire/api');
 const { checkDopplerPhase } = require('./pricempire/doppler');
 const { formatListing, formatListingForLogFile } = require('./clash/helpers');
-const { createSoldItemLogFile, createPurchasedItemLogFile } = require('./utils/logfiles.util');
+const { createSoldItemLogFile, createPurchasedItemLogFile, findBuyLogFileByItem } = require('./utils/logfiles.util');
 const { getCfClearance } = require('./clash/cloudflare_solver');
 
 const MAX_ACTIVE_TRADES = 5;
@@ -799,17 +799,20 @@ const Manager = () => {
 				// process next trade
 				_processTradeQueue();
 
+				// fetch the log for when we purchased the item
+				const itemBuyLog = await findBuyLogFileByItem(data.item.name, data.item.assetid);
+
 				if(soldLogs[data.id]){
 					soldLogs[data.id].receivedAt = new Date().toISOString();
 					// create sold item log file
-					await createSoldItemLogFile(soldLogs[data.id]);
+					await createSoldItemLogFile(soldLogs[data.id], itemBuyLog);
 					// delete sold log
 					delete soldLogs[data.id];
 				}
 
 				// send discord webhook
 				if(CONFIG.DISCORD_WEBHOOK_URL){
-					soldItem(CONFIG.DISCORD_WEBHOOK_URL, data, accountBalance);
+					soldItem(CONFIG.DISCORD_WEBHOOK_URL, data, accountBalance, itemBuyLog);
 				}
 			} else{
 				Logger.info(`[WEBSOCKET] A p2p listing we asked to purchase was RECEIVED by us. ${formatListing(data)}`);

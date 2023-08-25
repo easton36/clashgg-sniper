@@ -78,7 +78,30 @@ const createSoldItemLogFile = (data) => {
 	}
 };
 
+/**
+ * Finds a buy log file by item
+ * @param {String} name - The name of the item
+ * @param {Number} assetid - The assetid of the item
+ * @returns {Object} The log object
+ */
+const findBuyLogFileByItem = (name, assetid) => {
+	try{
+		// read log file
+		const logFile = JSON.parse(fs.readFileSync(purchasedItemsLogFile));
+
+		// find item in log file
+		const item = logFile.find((item) => item?.item?.name === name && item?.item?.assetid === assetid);
+
+		return item;
+	} catch(err){
+		Logger.error(`[LOG] An error occurred while finding buy log file by item: ${err?.message || err}`);
+
+		return null;
+	}
+};
+
 module.exports = {
 	createPurchasedItemLogFile,
-	createSoldItemLogFile
+	createSoldItemLogFile,
+	findBuyLogFileByItem
 };

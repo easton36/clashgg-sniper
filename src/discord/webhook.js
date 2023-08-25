@@ -276,9 +276,56 @@ const reEnableSniping = async (webhookURL, balance) => {
  * @param {Object} data.item - The item data
  * @param {String} data.item.name - The name of the item
  * @param {Number} data.item.price - The price of the item
+ * @param {Number} accountBalance - The balance of the account
+ * @param {Object} buyLog - The buy log of the item if any
  */
-const soldItem = async (webhookURL, data, accountBalance) => {
+const soldItem = async (webhookURL, data, accountBalance, buyLog) => {
 	try{
+		const fields = [
+			{
+				name: 'Listing ID',
+				value: data?.id
+			},
+			{
+				name: 'Item Name',
+				value: data?.item?.name
+			},
+			{
+				name: 'Price (USD)',
+				value: `$${((data?.item?.askPrice / CONFIG.CLASH_COIN_CONVERSION) / 100).toFixed(2)}`
+			},
+			{
+				name: 'Price (Coins)',
+				value: `$${(data?.item?.askPrice / 100).toFixed(2)}`
+			}
+		];
+
+		if(buyLog){
+			const purchasePrice = buyLog?.item?.askPrice;
+			const profit = data?.item?.askPrice - purchasePrice;
+			const profitPercentage = (profit / purchasePrice) * 100;
+
+			fields.push(
+				{
+					name: 'Purchase Price (USD)',
+					value: `$${((purchasePrice / CONFIG.CLASH_COIN_CONVERSION) / 100).toFixed(2)}`
+				},
+				{
+					name: 'Profit (USD)',
+					value: `$${((profit / CONFIG.CLASH_COIN_CONVERSION) / 100).toFixed(2)}`
+				},
+				{
+					name: 'Profit Percentage',
+					value: `${profitPercentage}%`
+				}
+			);
+		}
+
+		fields.push({
+			name: 'New Balance (Coins)',
+			value: `$${(accountBalance / 100).toFixed(2)}`
+		});
+
 		const response = await axios({
 			method: 'POST',
 			url: webhookURL,
@@ -287,28 +334,7 @@ const soldItem = async (webhookURL, data, accountBalance) => {
 				embeds: [{
 					title: 'Sold Item',
 					color: 1376000,
-					fields: [
-						{
-							name: 'Listing ID',
-							value: data?.id
-						},
-						{
-							name: 'Item Name',
-							value: data?.item?.name
-						},
-						{
-							name: 'Price (USD)',
-							value: `$${((data?.item?.askPrice / CONFIG.CLASH_COIN_CONVERSION) / 100).toFixed(2)}`
-						},
-						{
-							name: 'Price (Coins)',
-							value: `$${(data?.item?.askPrice / 100).toFixed(2)}`
-						},
-						{
-							name: 'New Balance (Coins)',
-							value: `$${(accountBalance / 100).toFixed(2)}`
-						}
-					],
+					fields,
 					timestamp: new Date().toJSON()
 				}],
 				username: WEBHOOK_USERNAME,
