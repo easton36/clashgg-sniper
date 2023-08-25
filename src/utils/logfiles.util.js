@@ -91,7 +91,7 @@ const findBuyLogFileByItem = (name, assetid) => {
 		const logFile = JSON.parse(fs.readFileSync(purchasedItemsLogFile));
 
 		// find item in log file
-		const item = logFile.find((item) => item?.item?.name === name && item?.item?.assetid === Number(assetid));
+		const item = logFile.find((item) => item?.item?.name === name && (item?.item?.assetid === Number(assetid) || item?.item?.assetid === assetid));
 		if(!item) throw new Error(`Could not find buy log file by item ${name} (${assetid})`);
 
 		return item;
