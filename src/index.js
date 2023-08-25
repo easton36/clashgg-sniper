@@ -801,7 +801,8 @@ const Manager = () => {
 
 				// fetch the log for when we purchased the item
 				const assetid = data?.item?.externalId.split('|')[2];
-				const itemBuyLog = await findBuyLogFileByItem(data.item.name, assetid);
+				const float = data?.item?.float;
+				const itemBuyLog = await findBuyLogFileByItem(data.item.name, assetid, float);
 				if(!itemBuyLog){
 					Logger.warn(`[WEBSOCKET] Couldn't find item buy log for item we just sold. ${formatListing(data)}`);
 				}

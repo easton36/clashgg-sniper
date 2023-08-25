@@ -82,16 +82,23 @@ const createSoldItemLogFile = (data) => {
  * Finds a buy log file by item
  * @param {String} name - The name of the item
  * @param {Number} assetid - The assetid of the item
+ * @param {String} float - The float of the item
  * @returns {Object} The log object
  */
-const findBuyLogFileByItem = (name, assetid) => {
+const findBuyLogFileByItem = (name, assetid, float) => {
 	try{
 		Logger.info(`[LOG] Finding buy log file by item ${name} (${assetid})`);
 		// read log file
 		const logFile = JSON.parse(fs.readFileSync(purchasedItemsLogFile));
 
 		// find item in log file
-		const item = logFile.find((item) => item?.item?.name === name && (item?.item?.assetid === Number(assetid) || item?.item?.assetid === assetid));
+		const item = logFile.find((item) =>
+			item?.item?.name === name &&
+			(
+				(item?.item?.assetid === Number(assetid) || item?.item?.assetid === assetid) ||
+				(item?.item?.float === float)
+			)
+		);
 		if(!item) throw new Error(`Could not find buy log file by item ${name} (${assetid})`);
 
 		return item;
