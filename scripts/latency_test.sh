@@ -12,7 +12,7 @@ for i in $(seq 1 $count); do
                             -H 'Accept-Language: en-US,en;q=0.8,ja;q=0.6' \
                             -H 'Upgrade-Insecure-Requests: 1' \
                             -H 'Connection: keep-alive' \
-                            --compressed -s -w "%{time_starttransfer}")
+                            --compressed -s -o /dev/null -w "%{time_starttransfer}")
     
     # Convert the floating point number to an integer (milliseconds)
     response_time_ms=$(echo $response_time_float*1000 | awk '{printf "%d", $0}')
