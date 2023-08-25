@@ -800,9 +800,8 @@ const Manager = () => {
 				_processTradeQueue();
 
 				// fetch the log for when we purchased the item
-				console.log(data);
-				console.log(soldLogs[data.id]);
-				const itemBuyLog = await findBuyLogFileByItem(data.item.name, data.item.assetid);
+				const assetid = data?.item?.externalId.split('|')[2];
+				const itemBuyLog = await findBuyLogFileByItem(data.item.name, assetid);
 				if(!itemBuyLog){
 					Logger.warn(`[WEBSOCKET] Couldn't find item buy log for item we just sold. ${formatListing(data)}`);
 				}
