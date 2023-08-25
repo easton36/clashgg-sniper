@@ -15,7 +15,7 @@ for i in $(seq 1 $count); do
                             --compressed -s -o /dev/null -w "%{time_starttransfer}")
     
     # Convert the floating point number to an integer (milliseconds)
-    response_time_ms=$(echo $response_time_float*1000 | awk '{printf "%d", $0}')
+    response_time_ms=$(echo "($response_time_float*1000 + 0.5)/1" | bc)
 
     # Print the response time for the current request
     echo "Request $i: $response_time_ms milliseconds"
