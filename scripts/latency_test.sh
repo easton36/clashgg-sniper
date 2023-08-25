@@ -17,6 +17,9 @@ for i in $(seq 1 $count); do
     # Convert the floating point number to an integer (milliseconds)
     response_time_ms=$(echo $response_time_float*1000 | awk '{printf "%d", $0}')
 
+    # Print the response time for the current request
+    echo "Request $i: $response_time_ms milliseconds"
+
     # Accumulate the response times
     total_time=$((total_time + response_time_ms))
 
@@ -28,4 +31,5 @@ done
 average=$((total_time / count))
 
 # Print the result
+echo "--------------------------"
 echo "Average Response Time: $average milliseconds"
