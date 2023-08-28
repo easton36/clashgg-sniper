@@ -6,6 +6,96 @@ const CONFIG = require('../config');
 const WEBHOOK_USERNAME = 'Clash.gg Sniper';
 const WEBHOOK_AVATAR_URL = 'https://transfer.sh/D9ooJ9pnew/Untitled.png';
 
+const WEBHOOK_COLOR = {
+	error: 16711680,
+	success: 1376000,
+	warn: 16755968,
+	info: 5814783
+};
+
+/**
+ * Discord webhook notification manager
+ * @param {String} webhookURL - The URL of the Discord webhook
+ */
+const DiscordWebhook = (webhookURL) => {
+	const AXIOS_TEMPLATE = {
+		method: 'POST',
+		url: webhookURL,
+		data: {
+			content: null,
+			embeds: [],
+			username: WEBHOOK_USERNAME,
+			avatar_url: WEBHOOK_AVATAR_URL,
+			attachments: []
+		}
+	};
+
+	/**
+	 * Builds the axios data template
+	 * @param {String} webhookType - The type of webhook to build
+	 * @param {String} title - The title of the webhook
+	 * @param {Array} fields - The fields of the webhook
+	 * @returns {Object} - The axios data template
+	 */
+	const buildAxiosTemplate = (webhookType, title, fields) => {
+		const embed = {
+			title,
+			color: WEBHOOK_COLOR.SUCCESS,
+			fields,
+			timestamp: new Date().toJSON()
+		};
+
+		// build the webhook data
+		const data = {
+			...AXIOS_TEMPLATE,
+		};
+		data.data.embeds.push(embed);
+
+		return data;
+	};
+
+	/**
+	 * Handles the response of the webhook
+	 * @param {Object} response - The response of the webhook
+	 * @param {String} webhookType - The type of webhook to build
+	 * @param {String} title - The title of the webhook
+	 */
+	const handleResponse = (response, webhookType, title) => {
+		
+	};
+
+	/**
+	 * Handles the error of the webhook
+	 * @param {Object} err - The error of the webhook
+	 * @param {String} webhookType - The type of webhook to build
+	 * @param {String} title - The title of the webhook
+	 */
+	const handleError = (err, webhookType, title) => {
+		const errMessage = err?.response?.data?.message || err.message || err;
+	};
+
+	/**
+	 * Sends a success webhook notification
+	 * @param {String} title - The title of the webhook
+	 * @param {Array} fields - The fields of the webhook
+	 */
+	const send = async (title, fields) => {
+		try{
+			const data = buildAxiosTemplate('success', title, fields);
+			// send the webhook
+			const response = await axios(data);
+
+			return handleResponse(response, 'success', title);
+		} catch(err){
+			return handleError(err, 'success', title);
+		}
+	};
+
+	return {
+		send
+	};
+};
+
 /**
  * Discord webhook when the script starts
  * @param {String} webhookURL - The URL of the Discord webhook
