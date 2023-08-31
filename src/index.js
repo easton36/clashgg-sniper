@@ -332,13 +332,13 @@ const Manager = () => {
 
 			Logger.info(`Fetched inventory with ${inventory.length || 0} items`);
 			// apparently we can only list one of an AGENT skin at a time, so we need to filter them out
-			const agentsToList = Object.values(ourListings).filter(listing => listing?.item?.name?.includes('Agent')).map(listing => listing?.item?.name);
+			const agentsToList = Object.values(ourListings).filter(listing => listing?.item?.name?.includes('Agent') || listing?.item?.name?.includes('Officer')).map(listing => listing?.item?.name);
 			// apparently we can only list one of a STICKER at a time, so we need to filter them out
 			const stickersToList = Object.values(ourListings).filter(listing => listing?.item?.name?.includes('Sticker')).map(listing => listing?.item?.name);
 			// filter inventory for items that have not been listed
 			const filteredInventory = inventory.filter(item => {
 				const alreadyListed = listedItems.includes(item.externalId);
-				if(item?.name?.includes('Agent')){
+				if(item?.name?.includes('Agent') || item?.name?.includes('Officer')){
 					if(agentsToList.includes(item.name)) return false;
 					agentsToList.push(item.name);
 				}
@@ -369,17 +369,21 @@ const Manager = () => {
 			}
 
 			for(const chunk of chunkedInventory){
-				const formattedItems = formatItemsForBulkSell(chunk);
-				Logger.info(`Listing ${formattedItems.length} items from chunk ${chunkedInventory.indexOf(chunk) + 1} of ${chunkedInventory.length}`);
+				try{
+					const formattedItems = formatItemsForBulkSell(chunk);
+					Logger.info(`Listing ${formattedItems.length} items from chunk ${chunkedInventory.indexOf(chunk) + 1} of ${chunkedInventory.length}`);
 
-				const listings = await createListings(formattedItems);
-				if(!listings) return;
+					const listings = await createListings(formattedItems);
+					if(!listings) return;
 
-				for(const listing of listings){
-					ourListings[listing.id] = listing;
-					listedItems.push(listing.item.externalId);
+					for(const listing of listings){
+						ourListings[listing.id] = listing;
+						listedItems.push(listing.item.externalId);
 
-					Logger.info(`Successfully listed item: ${listing?.item?.name} for $${listing?.item?.askPrice / 100} coins!`);
+						Logger.info(`Successfully listed item: ${listing?.item?.name} for $${listing?.item?.askPrice / 100} coins!`);
+					}
+				} catch(err){
+					Logger.error(`An error occurred while listing items: ${err.message || err}`);
 				}
 
 				// wait 3 seconds before listing another chunk
