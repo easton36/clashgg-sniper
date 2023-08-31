@@ -374,7 +374,7 @@ const Manager = () => {
 					Logger.info(`Listing ${formattedItems.length} items from chunk ${chunkedInventory.indexOf(chunk) + 1} of ${chunkedInventory.length}`);
 
 					const listings = await createListings(formattedItems);
-					if(!listings) return;
+					if(!listings) continue;
 
 					for(const listing of listings){
 						ourListings[listing.id] = listing;
