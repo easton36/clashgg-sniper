@@ -335,6 +335,8 @@ const Manager = () => {
 			const agentsToList = Object.values(ourListings).filter(listing => listing?.item?.name?.includes('Agent') || listing?.item?.name?.includes('Officer')).map(listing => listing?.item?.name);
 			// apparently we can only list one of a STICKER at a time, so we need to filter them out
 			const stickersToList = Object.values(ourListings).filter(listing => listing?.item?.name?.includes('Sticker')).map(listing => listing?.item?.name);
+			// music kits
+			const musicKitsToList = Object.values(ourListings).filter(listing => listing?.item?.name?.includes('Music Kit')).map(listing => listing?.item?.name);
 			// filter inventory for items that have not been listed
 			const filteredInventory = inventory.filter(item => {
 				const alreadyListed = listedItems.includes(item.externalId);
@@ -345,6 +347,10 @@ const Manager = () => {
 				if(item?.name?.includes('Sticker')){
 					if(stickersToList.includes(item.name)) return false;
 					stickersToList.push(item.name);
+				}
+				if(item?.name?.includes('Music Kit')){
+					if(musicKitsToList.includes(item.name)) return false;
+					musicKitsToList.push(item.name);
 				}
 
 				return !alreadyListed && item.isAccepted && item.isTradable;
