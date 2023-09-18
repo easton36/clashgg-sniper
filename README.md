@@ -3,6 +3,9 @@
 This is a simple script that will automatically purchase items from the Clash.gg store as soon as they become available, if the price is below a certain threshold.
 It will also automatically sell items in bulk at a markup percentage that you specify.
 
+### To Do
+ - More discord webhook notifications than originally planned, so `src/discord/webhook.js` should get cleaned up.
+
 ### Features
  - Automatic item purchasing
 	- Specify a minimum price threshold
