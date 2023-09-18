@@ -5,6 +5,8 @@ It will also automatically sell items in bulk at a markup percentage that you sp
 
 ### To Do
  - More discord webhook notifications than originally planned, so `src/discord/webhook.js` should get cleaned up.
+ - Multiple account support
+ - Steam account proxy support
 
 ### Features
  - Automatic item purchasing
