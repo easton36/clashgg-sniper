@@ -39,7 +39,9 @@ const fetchInventory = async (apiKey, steamId) => {
 		const response = await axios.get(`${CONFIG.PRICEMPIRE_API_URL}/v3/inventory/${steamId}`, {
 			params: {
 				api_key: apiKey,
-				input: steamId,
+				steamId,
+				currency: 'USD',
+				sources: ['buff', 'buff_avg30'],
 				force: true
 			}
 		});
