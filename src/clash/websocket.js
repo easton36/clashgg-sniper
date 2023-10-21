@@ -148,6 +148,8 @@ const ClashWebsocket = ({
 	const _open = () => {
 		// emit "auth" event
 		socket.send(JSON.stringify(['auth', accessToken]));
+		// subsribe to p2p events
+		socket.send(JSON.stringify(['subscribe', 'p2p']));
 
 		wsClosedCount = 0;
 

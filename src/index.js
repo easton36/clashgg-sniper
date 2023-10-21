@@ -34,7 +34,7 @@ const { fetchInventory } = require('./pricempire/api');
 const { checkDopplerPhase } = require('./pricempire/doppler');
 const { formatListing, formatListingForLogFile } = require('./clash/helpers');
 const { createSoldItemLogFile, createPurchasedItemLogFile, findBuyLogFileByItem } = require('./utils/logfiles.util');
-const { getCfClearance } = require('./clash/cloudflare_solver');
+// const { getCfClearance } = require('./clash/cloudflare_solver');
 
 const MAX_ACTIVE_TRADES = 5;
 
@@ -230,11 +230,13 @@ const Manager = () => {
 	const generateAccessToken = async () => {
 		if(CONFIG.IP_WHITELISTED){
 			Logger.info('IP is whitelisted. Skipping Cloudflare clearance...');
+		} else if(!CONFIG.CF_CLEARANCE){
+			Logger.error('No cf_clearance cookie was found. This is required to generate an access token. Exiting process...');
+			process.exit(1);
 		}
 		// fetch cf_clearance cookie
-		const cfClearance = CONFIG.IP_WHITELISTED ? null : (CONFIG.CF_CLEARANCE || await getCfClearance(CONFIG.REFRESH_TOKEN));
-
-		accessToken = await getAccessToken(CONFIG.REFRESH_TOKEN, cfClearance); // CONFIG.CF_CLEARANCE);
+		const cfClearance = CONFIG.IP_WHITELISTED ? null : CONFIG.CF_CLEARANCE; // await getCfClearance(CONFIG.REFRESH_TOKEN)
+		accessToken = await getAccessToken(CONFIG.REFRESH_TOKEN, cfClearance);
 		if(!accessToken){
 			Logger.error('No access token was found. This could be an issue with your refresh token cookie, or more likely, your cf_clearance cookie. cf_clearance expires often.');
 
