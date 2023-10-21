@@ -29,15 +29,14 @@ const fetchPricingData = async (apiKey) => {
 };
 
 /**
- * Fetches inventory from pricempire (BROKEN)
+ * Fetches inventory from pricempire
  * @param {String} apiKey - The API key for the Pricempire API
  * @param {String} steamId - The Steam ID to fetch inventory for
  * @returns {Promise<Object>} The inventory data
  */
 const fetchInventory = async (apiKey, steamId) => {
 	try{
-		return [];
-		/* const response = await axios.get(`${CONFIG.PRICEMPIRE_API_URL}/v2/inventory`, {
+		const response = await axios.get(`${CONFIG.PRICEMPIRE_API_URL}/v3/inventory/${steamId}`, {
 			params: {
 				api_key: apiKey,
 				input: steamId,
@@ -47,8 +46,7 @@ const fetchInventory = async (apiKey, steamId) => {
 
 		const inventory = response?.data?.items;
 
-		return inventory; */
-	// eslint-disable-next-line no-unreachable
+		return inventory;
 	} catch(err){
 		const errMessage = err?.response?.data?.message || err.message || err;
 		Logger.error(`[PRICEMPIRE] An error occurred while fetching inventory: ${errMessage}`);
