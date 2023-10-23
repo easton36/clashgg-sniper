@@ -40,6 +40,7 @@ It will also automatically sell items in bulk at a markup percentage that you sp
  - Clone this repository
  - Rename `.env.example` to `.env`
  - Fill your Clash.gg `refresh_token` cookie into `.env` as `REFRESH_TOKEN`
+ - Fill in your Clash.gg `CF_CLEARANCE` cookie so we can bypass the cloudflare checkpoint. This will expire frequently so it will need to be updated.
  - Fill rest of `.env` as you wish, it is pretty self explanatory and commented well
  - Run `npm install` to install dependencies
 
